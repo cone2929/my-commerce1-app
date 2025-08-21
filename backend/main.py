@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.responses import Response
+import base64
+import asyncio
 
 from supabase import create_client
 from dotenv import load_dotenv
@@ -9,6 +12,9 @@ load_dotenv()
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 supabase = create_client(supabase_url, supabase_key)
+
+# 🐥🐥🐥🐥🐥 Playwright 관련 import
+from playwright.async_api import async_playwright
 
 
 
@@ -20,7 +26,7 @@ app = FastAPI()
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://my-commerce-frontend-uyt4.onrender.com", "http://localhost:3001"],
+    allow_origins=["https://my-commerce-frontend-uyt4.onrender.com", "http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -164,6 +170,33 @@ async def 수정사항적용(요청: 수정요청):
     
     result = AI결과
     return {"result": result}
+
+# 🐥🐥🐥🐥🐥 웹페이지 스크린샷 API
+class 웹페이지요청(BaseModel):
+    url: str
+    width: int = 1200
+    height: int = 800
+
+@app.post("/api/screenshot")
+async def 웹페이지스크린샷(요청: 웹페이지요청):
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page(viewport={'width': 요청.width, 'height': 요청.height})
+            
+            # 페이지 로드 대기
+            await page.goto(요청.url, wait_until='networkidle', timeout=30000)
+            
+            # 스크린샷 촬영
+            screenshot = await page.screenshot(full_page=True)
+            await browser.close()
+            
+            # base64로 인코딩
+            screenshot_base64 = base64.b64encode(screenshot).decode('utf-8')
+            
+            return {"screenshot": screenshot_base64, "success": True}
+    except Exception as e:
+        return {"error": str(e), "success": False}
 
 if __name__ == "__main__":
     import uvicorn

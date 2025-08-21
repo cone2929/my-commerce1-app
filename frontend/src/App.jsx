@@ -3,12 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase/클라이언트';
 import 레이아웃 from './components/레이아웃';
-import 세특AI from './pages/세특AI';
-import NEIS출결 from './pages/NEIS출결';
+import 상품관리 from './pages/상품관리';
+import 주문관리 from './pages/주문관리';
 // ★★★★★ 로그인 컴포넌트만 import (회원가입은 구글로 통합)
 import 로그인 from './components/로그인';
 // ★★★★★ 콜백 컴포넌트 import 추가
 import 인증콜백 from './components/인증콜백';
+
 
 function App() {
   // ★★★★★ 인증 상태 관리
@@ -53,9 +54,9 @@ function App() {
             </>
           ) : (
             <>
-              <Route index element={<Navigate to="/세특-ai" replace />} />
-              <Route path="세특-ai" element={<세특AI />} />
-              <Route path="neis-출결" element={<NEIS출결 />} />
+              <Route index element={<Navigate to="/상품-관리" replace />} />
+              <Route path="상품-관리" element={<상품관리 />} />
+              <Route path="주문-관리" element={<주문관리 />} />
             </>
           )}
         </Route>
