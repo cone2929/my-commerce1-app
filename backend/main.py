@@ -13,8 +13,8 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 supabase = create_client(supabase_url, supabase_key)
 
-# 🐥🐥🐥🐥🐥 Playwright 관련 import
-from playwright.async_api import async_playwright
+# 🐥🐥🐥🐥🐥 Playwright 관련 import (배포 타임아웃 방지를 위해 임시 주석 처리)
+# from playwright.async_api import async_playwright
 
 
 
