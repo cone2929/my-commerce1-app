@@ -223,9 +223,11 @@ async def 상품정보파싱(요청: 웹페이지요청):
                 
                 browser = await playwright.chromium.launch(
                     headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
-                    args=browser_args
+                    args=browser_args,
+                    timeout=120000  # 🐥🐥🐥🐥🐥 브라우저 시작 타임아웃 늘리기
                 )
                 page = await browser.new_page()
+                print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 및 페이지 생성 완료")
                 user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
             except Exception as e:
                 print(f"🐥🐥🐥🐥🐥 브라우저 생성 실패: {str(e)}")
@@ -240,26 +242,15 @@ async def 상품정보파싱(요청: 웹페이지요청):
         # 🐥🐥🐥🐥🐥 디버깅: 요청 정보 출력
         print(f"🐥🐥🐥🐥🐥 디버깅: 사용자 {user_id}, 페이지 {요청.page} 요청 시작")
         
-        # 🐥🐥🐥🐥🐥 페이지 로드 대기 (최적화)
-        await page.goto(요청.url, wait_until='domcontentloaded', timeout=30000)
+        # 🐥🐥🐥🐥🐥 페이지 로드 (최소한의 대기만)
+        print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 시작 - {요청.url}")
+        await page.goto(요청.url, wait_until='domcontentloaded', timeout=15000)
+        print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 완료")
         
-        # 🐥🐥🐥🐥🐥 상품 요소가 클릭 가능할 때까지 조건부 대기 (attached 상태)
-        try:
-            await page.wait_for_selector('.product-eachone', state='attached', timeout=5000)
-        except:
-            try:
-                await page.wait_for_selector('[data-v-199934d4]', state='attached', timeout=3000)
-            except:
-                try:
-                    await page.wait_for_selector('.goods-item-animation', state='attached', timeout=2000)
-                except:
-                    # 🐥🐥🐥🐥🐥 모든 셀렉터가 실패해도 기본 대기
-                    await page.wait_for_timeout(1000)
+        # 🐥🐥🐥🐥🐥 즉시 상품 정보 추출 (대기 없이)
+        print(f"🐥🐥🐥🐥🐥 디버깅: 즉시 상품 정보 추출 시작")
         
-        # 🐥🐥🐥🐥🐥 클릭 가능 확인 후 무조건 대기 1초 추가
-        await page.wait_for_timeout(1000)
-        
-        # 🐥🐥🐥🐥🐥 페이지 번호에 따라 스크롤 시뮬레이션
+        # 🐥🐥🐥🐥🐥 페이지 번호에 따라 스크롤 시뮬레이션 (최소 대기)
         if 요청.page > 1:
             print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 {요청.page} 스크롤 시작")
             
@@ -270,46 +261,14 @@ async def 상품정보파싱(요청: 웹페이지요청):
             # 🐥🐥🐥🐥🐥 현재 화면 기준 가장 아래로 스크롤
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             
-            # 🐥🐥🐥🐥🐥 새로운 상품들이 로드될 때까지 조건부 대기
-            try:
-                await page.wait_for_function("""
-                    () => {
-                        const currentCount = document.querySelectorAll('.product-eachone, [data-v-199934d4], .goods-item-animation').length;
-                        return currentCount > """ + str(스크롤전상품수) + """;
-                    }
-                """, timeout=15000)
-                
-                # 🐥🐥🐥🐥🐥 스크롤 후 상품 개수 확인
-                스크롤후상품수 = await page.evaluate("document.querySelectorAll('.product-eachone, [data-v-199934d4], .goods-item-animation').length")
-                print(f"🐥🐥🐥🐥🐥 디버깅: 스크롤 후 상품 수: {스크롤후상품수}개 (증가: {스크롤후상품수 - 스크롤전상품수}개)")
-                
-            except:
-                print(f"🐥🐥🐥🐥🐥 디버깅: 새로운 상품 로딩 대기 실패")
+            # 🐥🐥🐥🐥🐥 최소한의 대기만 (3초)
+            await page.wait_for_timeout(3000)
             
-            # 🐥🐥🐥🐥🐥 이미지 로딩 완료까지 대기 (최적화)
-            try:
-                await page.wait_for_function("""
-                    () => {
-                        const images = document.querySelectorAll('img');
-                        let loadedCount = 0;
-                        let totalCount = 0;
-                        
-                        for (let img of images) {
-                            totalCount++;
-                            if (img.complete && img.naturalHeight > 0) {
-                                loadedCount++;
-                            }
-                        }
-                        
-                        // 🐥🐥🐥🐥🐥 70% 이상의 이미지가 로드되면 완료로 간주 (속도 우선)
-                        return totalCount > 0 && (loadedCount / totalCount) >= 0.7;
-                    }
-                """, timeout=10000)
-                print(f"🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 완료")
-            except:
-                print(f"🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 대기 실패")
+            # 🐥🐥🐥🐥🐥 스크롤 후 상품 개수 확인
+            스크롤후상품수 = await page.evaluate("document.querySelectorAll('.product-eachone, [data-v-199934d4], .goods-item-animation').length")
+            print(f"🐥🐥🐥🐥🐥 디버깅: 스크롤 후 상품 수: {스크롤후상품수}개 (증가: {스크롤후상품수 - 스크롤전상품수}개)")
         else:
-            # 🐥🐥🐥🐥🐥 첫 페이지는 조건부 대기만으로 충분
+            # 🐥🐥🐥🐥🐥 첫 페이지는 대기 없음
             pass
         
         # 🐥🐥🐥🐥🐥 최종 상품 개수 확인
