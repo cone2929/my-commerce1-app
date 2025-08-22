@@ -1,10 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 // 🐥🐥🐥🐥🐥 팝업창 import 추가
 import 팝업창 from '../components/팝업창';
 
 const 상품관리 = () => {
     // 🐥🐥🐥🐥🐥 팝업창 상태 관리 추가
     const [팝업열림, 팝업열림설정] = useState(false);
+
+    // 🐥🐥🐥🐥🐥 이미지 선택 상태 관리
+    const [선택된이미지, 선택된이미지설정] = useState({
+        상품인덱스: -1,
+        이미지타입: '', // '썸네일' 또는 '상세'
+        이미지인덱스: -1
+    });
+
+    // 🐥🐥🐥🐥🐥 키보드 네비게이션을 위한 ref
+    const 상품카드Refs = useRef([]);
 
     // 🐥🐥🐥🐥🐥 팝업창 열기/닫기 함수
     const 팝업열기 = () => {
@@ -15,19 +25,322 @@ const 상품관리 = () => {
         팝업열림설정(false);
     };
 
-            const [상품목록, set상품목록] = useState([
-        { 
-            id: 1,
-            상품명: '샘플 상품', 
-            카테고리: '의류', 
-            가격: '25000', 
-            재고: '100',
-            상태: '판매중',
-            등록일: new Date().toLocaleDateString('ko-KR'),
-            설명: '샘플 상품 설명입니다.',
-            이미지: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300&h=300&fit=crop&crop=center'
-        },
-    ]);
+    // 🐥🐥🐥🐥🐥 팝업창에서 선택된 상품들을 상품목록에 추가하는 함수
+    const 선택된상품추가처리 = (새로운상품들) => {
+        if (새로운상품들 && 새로운상품들.length > 0) {
+            // 🐥🐥🐥🐥🐥 기존 상품목록 앞에 새로운 상품들을 추가
+            set상품목록(prev => [...새로운상품들, ...prev]);
+        }
+    };
+
+    // 🐥🐥🐥🐥🐥 이미지 클릭 핸들러
+    const 이미지클릭 = (상품인덱스, 이미지타입, 이미지인덱스) => {
+        선택된이미지설정({
+            상품인덱스,
+            이미지타입,
+            이미지인덱스
+        });
+    };
+
+    // 🐥🐥🐥🐥🐥 이미지 삭제 함수
+    const 이미지삭제 = (상품인덱스, 이미지타입, 이미지인덱스) => {
+        const 새상품목록 = [...상품목록];
+        const 상품 = 새상품목록[상품인덱스];
+        
+        // 🐥🐥🐥🐥🐥 이미지 배열 가져오기
+        let 이미지배열;
+        if (이미지타입 === '썸네일') {
+            이미지배열 = 상품.썸네일이미지들 && 상품.썸네일이미지들.length > 0 
+                ? [...상품.썸네일이미지들] 
+                : [];
+        } else {
+            이미지배열 = 상품.상세이미지들 && 상품.상세이미지들.length > 0 
+                ? [...상품.상세이미지들] 
+                : [];
+        }
+        
+        // 🐥🐥🐥🐥🐥 해당 인덱스의 이미지가 존재하는지 확인
+        if (!이미지배열[이미지인덱스]) {
+            console.log(`🐥🐥🐥🐥🐥 이미지가 존재하지 않음: ${상품.상품명} - ${이미지타입} ${이미지인덱스 + 1}`);
+            return;
+        }
+        
+        // 🐥🐥🐥🐥🐥 실제로 이미지 배열에서 삭제
+        이미지배열.splice(이미지인덱스, 1);
+        
+        // 🐥🐥🐥🐥🐥 상품 데이터 업데이트
+        if (이미지타입 === '썸네일') {
+            상품.썸네일이미지들 = 이미지배열;
+        } else {
+            상품.상세이미지들 = 이미지배열;
+        }
+        
+        set상품목록(새상품목록);
+        
+        // 🐥🐥🐥🐥🐥 자동 저장
+        자동저장(상품);
+        
+        console.log(`🐥🐥🐥🐥🐥 이미지 삭제됨: ${상품.상품명} - ${이미지타입} ${이미지인덱스 + 1}`);
+    };
+
+    // 🐥🐥🐥🐥🐥 이미지 순서 변경 함수 - 항상 썸네일 첫 번째로 이동
+    const 이미지순서변경 = (상품인덱스, 이미지타입, 현재인덱스) => {
+        const 새상품목록 = [...상품목록];
+        const 상품 = 새상품목록[상품인덱스];
+        
+        // 🐥🐥🐥🐥🐥 선택된 이미지 URL 가져오기
+        let 선택된이미지URL;
+        if (이미지타입 === '썸네일') {
+            const 썸네일이미지들 = 상품.썸네일이미지들 && 상품.썸네일이미지들.length > 0 
+                ? 상품.썸네일이미지들 
+                : [];
+            선택된이미지URL = 썸네일이미지들[현재인덱스];
+        } else {
+            const 상세이미지들 = 상품.상세이미지들 && 상품.상세이미지들.length > 0 
+                ? 상품.상세이미지들 
+                : [];
+            선택된이미지URL = 상세이미지들[현재인덱스];
+        }
+        
+        // 🐥🐥🐥🐥🐥 썸네일 이미지 배열 가져오기
+        let 썸네일이미지배열 = 상품.썸네일이미지들 && 상품.썸네일이미지들.length > 0 
+            ? [...상품.썸네일이미지들] 
+            : [];
+        
+        // 🐥🐥🐥🐥🐥 선택된 이미지를 썸네일 첫 번째로 이동
+        // 먼저 기존 썸네일 배열에서 같은 이미지가 있는지 확인하고 제거
+        const 기존인덱스 = 썸네일이미지배열.indexOf(선택된이미지URL);
+        if (기존인덱스 !== -1) {
+            썸네일이미지배열.splice(기존인덱스, 1);
+        }
+        
+        // 선택된 이미지를 첫 번째로 추가 (기존 이미지들이 한 칸씩 밀려남)
+        썸네일이미지배열.unshift(선택된이미지URL);
+        
+        // 🐥🐥🐥🐥🐥 배열이 5개를 초과하면 마지막 이미지 제거
+        if (썸네일이미지배열.length > 5) {
+            썸네일이미지배열 = 썸네일이미지배열.slice(0, 5);
+        }
+        
+        // 🐥🐥🐥🐥🐥 상품 데이터 업데이트
+        상품.썸네일이미지들 = 썸네일이미지배열;
+        
+        set상품목록(새상품목록);
+        
+        console.log(`🐥🐥🐥🐥🐥 이미지 순서 변경됨: ${상품.상품명} - ${이미지타입} ${현재인덱스 + 1}번째 → 썸네일 1번째`);
+    };
+
+    // 🐥🐥🐥🐥🐥 키보드 네비게이션 핸들러
+    const 키보드네비게이션 = (e) => {
+        // 🐥🐥🐥🐥🐥 입력필드에 포커스가 있으면 단축키 비활성화
+        const 활성요소 = document.activeElement;
+        if (활성요소 && (활성요소.tagName === 'INPUT' || 활성요소.tagName === 'TEXTAREA' || 활성요소.contentEditable === 'true')) {
+            return; // 입력필드에 포커스가 있으면 단축키 무시
+        }
+
+        // 🐥🐥🐥🐥🐥 N키를 누르면 팝업창 열기 (플로팅버튼과 동일한 효과)
+        if (e.key === 'N' || e.key === 'n') {
+            e.preventDefault();
+            팝업열기();
+            return;
+        }
+
+        const { 상품인덱스, 이미지타입, 이미지인덱스 } = 선택된이미지;
+        
+        if (상품인덱스 === -1) return; // 선택된 이미지가 없으면 무시
+
+        switch (e.key) {
+            case 'ArrowLeft':
+                e.preventDefault();
+                // 🐥🐥🐥🐥🐥 빈 슬롯을 건너뛰고 이전 이미지로 이동
+                let 이전인덱스 = 이미지인덱스 - 1;
+                while (이전인덱스 >= 0) {
+                    const 상품 = 상품목록[상품인덱스];
+                    const 이미지배열 = 이미지타입 === '썸네일' ? 상품.썸네일이미지들 : 상품.상세이미지들;
+                    if (이미지배열 && 이미지배열[이전인덱스]) {
+                        선택된이미지설정({
+                            상품인덱스,
+                            이미지타입,
+                            이미지인덱스: 이전인덱스
+                        });
+                        break;
+                    }
+                    이전인덱스--;
+                }
+                
+                // 🐥🐥🐥🐥🐥 같은 타입에서 찾지 못했고 상세 이미지인 경우 썸네일로 이동
+                if (이전인덱스 < 0 && 이미지타입 === '상세') {
+                    const 상품 = 상품목록[상품인덱스];
+                    const 썸네일이미지들 = 상품.썸네일이미지들;
+                    if (썸네일이미지들 && 썸네일이미지들.length > 0) {
+                        // 썸네일의 마지막 이미지 찾기
+                        for (let i = 4; i >= 0; i--) {
+                            if (썸네일이미지들[i]) {
+                                선택된이미지설정({
+                                    상품인덱스,
+                                    이미지타입: '썸네일',
+                                    이미지인덱스: i
+                                });
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+                
+            case 'ArrowRight':
+                e.preventDefault();
+                // 🐥🐥🐥🐥🐥 빈 슬롯을 건너뛰고 다음 이미지로 이동
+                let 다음인덱스 = 이미지인덱스 + 1;
+                while (다음인덱스 <= 4) {
+                    const 상품 = 상품목록[상품인덱스];
+                    const 이미지배열 = 이미지타입 === '썸네일' ? 상품.썸네일이미지들 : 상품.상세이미지들;
+                    if (이미지배열 && 이미지배열[다음인덱스]) {
+                        선택된이미지설정({
+                            상품인덱스,
+                            이미지타입,
+                            이미지인덱스: 다음인덱스
+                        });
+                        break;
+                    }
+                    다음인덱스++;
+                }
+                
+                // 🐥🐥🐥🐥🐥 같은 타입에서 찾지 못했고 썸네일인 경우 상세로 이동
+                if (다음인덱스 > 4 && 이미지타입 === '썸네일') {
+                    const 상품 = 상품목록[상품인덱스];
+                    const 상세이미지들 = 상품.상세이미지들;
+                    if (상세이미지들 && 상세이미지들.length > 0) {
+                        // 상세의 첫 번째 이미지 찾기
+                        for (let i = 0; i <= 4; i++) {
+                            if (상세이미지들[i]) {
+                                선택된이미지설정({
+                                    상품인덱스,
+                                    이미지타입: '상세',
+                                    이미지인덱스: i
+                                });
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                // 🐥🐥🐥🐥🐥 이전 상품들을 순회하면서 같은 위치에 이미지가 있는 상품 찾기
+                for (let i = 상품인덱스 - 1; i >= 0; i--) {
+                    const 이전상품 = 상품목록[i];
+                    const 이전이미지배열 = 이미지타입 === '썸네일' ? 이전상품.썸네일이미지들 : 이전상품.상세이미지들;
+                    
+                    if (이전이미지배열 && 이전이미지배열[이미지인덱스]) {
+                        // 같은 위치에 이미지가 있으면 해당 상품으로 이동
+                        선택된이미지설정({
+                            상품인덱스: i,
+                            이미지타입,
+                            이미지인덱스
+                        });
+                        break;
+                    }
+                }
+                break;
+                
+            case 'ArrowDown':
+                e.preventDefault();
+                // 🐥🐥🐥🐥🐥 다음 상품들을 순회하면서 같은 위치에 이미지가 있는 상품 찾기
+                for (let i = 상품인덱스 + 1; i < 상품목록.length; i++) {
+                    const 다음상품 = 상품목록[i];
+                    const 다음이미지배열 = 이미지타입 === '썸네일' ? 다음상품.썸네일이미지들 : 다음상품.상세이미지들;
+                    
+                    if (다음이미지배열 && 다음이미지배열[이미지인덱스]) {
+                        // 같은 위치에 이미지가 있으면 해당 상품으로 이동
+                        선택된이미지설정({
+                            상품인덱스: i,
+                            이미지타입,
+                            이미지인덱스
+                        });
+                        break;
+                    }
+                }
+                break;
+                
+            case '1':
+                e.preventDefault();
+                // 🐥🐥🐥🐥🐥 선택된 이미지를 썸네일 첫 번째로 이동
+                // 썸네일 첫 번째가 아니거나 상세 이미지인 경우 모두 이동 가능
+                if (이미지타입 === '썸네일' && 이미지인덱스 > 0) {
+                    이미지순서변경(상품인덱스, 이미지타입, 이미지인덱스);
+                } else if (이미지타입 === '상세') {
+                    이미지순서변경(상품인덱스, 이미지타입, 이미지인덱스);
+                }
+                break;
+                
+            case 'Delete':
+                e.preventDefault();
+                // 🐥🐥🐥🐥🐥 선택된 이미지 삭제
+                이미지삭제(상품인덱스, 이미지타입, 이미지인덱스);
+                break;
+                
+            case 'Escape':
+                e.preventDefault();
+                // 선택 해제
+                선택된이미지설정({
+                    상품인덱스: -1,
+                    이미지타입: '',
+                    이미지인덱스: -1
+                });
+                break;
+        }
+    };
+
+            const [상품목록, set상품목록] = useState([]);
+
+    // 🐥🐥🐥🐥🐥 화면 크기에 따른 스케일 팩터 계산 및 적용
+    useEffect(() => {
+        const 스케일팩터계산 = () => {
+            const 화면너비 = window.innerWidth;
+            const 화면높이 = window.innerHeight;
+            
+            // 기준 해상도 (1920x1080 기준)
+            const 기준너비 = 1920;
+            const 기준높이 = 1080;
+            
+            // 너비와 높이 중 더 작은 비율을 사용하여 전체적으로 축소
+            const 너비비율 = 화면너비 / 기준너비;
+            const 높이비율 = 화면높이 / 기준높이;
+            const 스케일팩터 = Math.min(너비비율, 높이비율, 1); // 1보다 크게 확대되지 않도록 제한
+            
+            document.documentElement.style.setProperty('--scale-factor', 스케일팩터.toString());
+        };
+        
+        // 초기 실행
+        스케일팩터계산();
+        
+        // 리사이즈 이벤트 리스너 등록
+        window.addEventListener('resize', 스케일팩터계산);
+        
+        return () => {
+            window.removeEventListener('resize', 스케일팩터계산);
+        };
+    }, []);
+
+    // 🐥🐥🐥🐥🐥 키보드 이벤트 리스너 등록
+    useEffect(() => {
+        window.addEventListener('keydown', 키보드네비게이션);
+        return () => {
+            window.removeEventListener('keydown', 키보드네비게이션);
+        };
+    }, [선택된이미지, 상품목록.length, 팝업열기]);
+
+    // 🐥🐥🐥🐥🐥 선택된 이미지가 변경될 때 해당 요소로 스크롤
+    useEffect(() => {
+        if (선택된이미지.상품인덱스 >= 0 && 상품카드Refs.current[선택된이미지.상품인덱스]) {
+            상품카드Refs.current[선택된이미지.상품인덱스].scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }, [선택된이미지]);
 
     const [저장중, set저장중] = useState({});
 
@@ -40,6 +353,7 @@ const 상품관리 = () => {
         '가구',
         '스포츠용품',
         '도서',
+        '가방',
         '기타'
     ];
 
@@ -116,6 +430,7 @@ const 상품관리 = () => {
         '가구': 'bg-brown-100 text-brown-800',
         '스포츠용품': 'bg-cyan-100 text-cyan-800',
         '도서': 'bg-indigo-100 text-indigo-800',
+        '가방': 'bg-green-100 text-green-800',
         '기타': 'bg-gray-100 text-gray-800'
     };
 
@@ -137,15 +452,25 @@ const 상품관리 = () => {
     };
 
     return (
-        <div className="min-h-screen p-6" style={{ backgroundColor: '#FAF9F5' }}>
-
+        <Fragment>
+            <div className="min-h-screen p-6" style={{ 
+                backgroundColor: '#FAF9F5',
+                transform: 'scale(var(--scale-factor, 1))',
+                transformOrigin: 'top left',
+                width: 'calc(100vw / var(--scale-factor, 1))',
+                height: 'calc(100vh / var(--scale-factor, 1))'
+            }}>
 
 
 
             {/* 🐥🐥🐥🐥🐥 상품 카드 그리드 - 메시지카드 스타일 적용 */}
             <div className="grid grid-cols-1 gap-3">
                 {상품목록.map((상품, 인덱스) => (
-                    <div key={상품.id} className="relative group/row">
+                    <div 
+                        key={상품.id} 
+                        className="relative group/row"
+                        ref={el => 상품카드Refs.current[인덱스] = el}
+                    >
                         {/* 🐥🐥🐥🐥🐥 체크박스 영역 */}
                         <div className="p-1 absolute z-10 top-1/2 -translate-y-1/2 -translate-x-1/2 transition duration-100 l-0 opacity-0 scale-75 group-has-[:focus-visible]/row:opacity-100 group-has-[:focus-visible]/row:scale-100 group-hover/row:opacity-100 group-hover/row:scale-100">
                             <div data-state="closed">
@@ -181,23 +506,57 @@ const 상품관리 = () => {
                                     borderColor: '#BABABA',
                                     '--hover-border-color': '#DAD7D5'
                                 }}>
-                                    {/* 🐥🐥🐥🐥🐥 상품 이미지 5개 */}
+                                    {/* 🐥🐥🐥🐥🐥 썸네일 이미지 5개 */}
                                     <div className="flex gap-2 p-4">
-                                        {[
-                                            'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=300&fit=crop&crop=center'
-                                        ].map((이미지URL, index) => (
-                                            <div key={index} className="w-32 h-32 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
-                                                <img 
-                                                    src={이미지URL} 
-                                                    alt={`${상품.상품명} 이미지 ${index + 1}`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                        ))}
+                                        {(() => {
+                                            // 🐥🐥🐥🐥🐥 추출된 썸네일 이미지가 있으면 사용, 없으면 빈 배열
+                                            const 썸네일이미지들 = 상품.썸네일이미지들 && 상품.썸네일이미지들.length > 0 
+                                                ? 상품.썸네일이미지들 
+                                                : [];
+                                            
+                                            console.log(`🐥🐥🐥🐥🐥 상품 "${상품.상품명}" 이미지 정보:`, {
+                                                썸네일이미지들: 상품.썸네일이미지들,
+                                                최종이미지들: 썸네일이미지들
+                                            });
+                                            
+                                            // 🐥🐥🐥🐥🐥 5개의 이미지 슬롯 생성
+                                            return Array.from({ length: 5 }, (_, index) => {
+                                                const 이미지URL = 썸네일이미지들[index];
+                                                const 선택됨 = 선택된이미지.상품인덱스 === 인덱스 && 
+                                                              선택된이미지.이미지타입 === '썸네일' && 
+                                                              선택된이미지.이미지인덱스 === index;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={index} 
+                                                        className={`w-32 h-32 flex-shrink-0 rounded overflow-hidden transition-all duration-200 ${
+                                                            이미지URL ? 'bg-gray-100 cursor-pointer' : 'bg-gradient-to-b from-bg-100 to-bg-100/30'
+                                                        } ${선택됨 ? 'ring-4 ring-offset-2' : 이미지URL ? 'hover:ring-2 hover:ring-gray-300' : ''}`}
+                                                        style={{
+                                                            ...(선택됨 && { '--tw-ring-color': '#5E92C6' })
+                                                        }}
+                                                        onClick={이미지URL ? () => 이미지클릭(인덱스, '썸네일', index) : undefined}
+                                                        tabIndex={이미지URL ? 0 : -1}
+                                                        role={이미지URL ? "button" : undefined}
+                                                        aria-label={이미지URL ? `${상품.상품명} 썸네일 ${index + 1}` : undefined}
+                                                    >
+                                                        {이미지URL ? (
+                                                            <img 
+                                                                src={이미지URL} 
+                                                                alt={`${상품.상품명} 썸네일 ${index + 1}`}
+                                                                className="w-full h-full object-cover"
+                                                                onLoad={() => {
+                                                                    console.log(`🐥🐥🐥🐥🐥 이미지 로드 성공: ${이미지URL}`);
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            // 🐥🐥🐥🐥🐥 빈 이미지 슬롯 - 상품카드 배경색과 동일
+                                                            <div className="w-full h-full bg-gradient-to-b from-bg-100 to-bg-100/30" />
+                                                        )}
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
                                     </div>
 
                                     {/* 🐥🐥🐥🐥🐥 상품 정보 */}
@@ -209,22 +568,28 @@ const 상품관리 = () => {
                                                     type="text"
                                                     value={상품.상품명}
                                                     onChange={(e) => 입력값변경(인덱스, '상품명', e.target.value)}
-                                                    className="w-1/2 px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:border-transparent"
+                                                    className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:border-transparent"
                                                     style={{ '--tw-ring-color': '#5E92C6' }}
                                                     placeholder="상품명을 입력하세요"
                                                 />
                                             </div>
                                             
-                                            {/* 🐥🐥🐥🐥🐥 가격 입력 필드 */}
+                                            {/* 🐥🐥🐥🐥🐥 가격 입력 필드 - 한국원화 + 마진 30% */}
                                             <div className="flex gap-2">
-                                                <div>
+                                                <div className="relative w-1/4">
+                                                    <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm pointer-events-none">₩</span>
                                                     <input
                                                         type="text"
-                                                        value={상품.가격}
-                                                        onChange={(e) => 입력값변경(인덱스, '가격', e.target.value)}
-                                                        className="w-1/2 px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:border-transparent"
+                                                        value={상품.가격 ? parseInt(상품.가격).toLocaleString() : ''}
+                                                        onChange={(e) => {
+                                                            const 입력값 = e.target.value;
+                                                            // 🐥🐥🐥🐥🐥 쉼표 제거 후 숫자만 입력 가능하도록 필터링
+                                                            const 숫자만 = 입력값.replace(/[^0-9]/g, '');
+                                                            입력값변경(인덱스, '가격', 숫자만);
+                                                        }}
+                                                        className="w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:border-transparent"
                                                         style={{ '--tw-ring-color': '#5E92C6' }}
-                                                        placeholder="가격을 입력하세요"
+                                                        placeholder="가격을 입력하세요 (마진 30% 포함)"
                                                     />
                                                 </div>
                                             </div>
@@ -260,26 +625,64 @@ const 상품관리 = () => {
                                                     </div>
                                                 </div>
                                             </div>
+                                            
+
+                                            
+
                                         </div>
                                     </div>
 
                                     {/* 🐥🐥🐥🐥🐥 상세 이미지 5개 */}
                                     <div className="flex gap-2 p-4">
-                                        {[
-                                            'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=300&fit=crop&crop=center',
-                                            'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop&crop=center'
-                                        ].map((이미지URL, index) => (
-                                            <div key={index} className="w-32 h-32 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
-                                                <img 
-                                                    src={이미지URL} 
-                                                    alt={`${상품.상품명} 상세이미지 ${index + 1}`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                        ))}
+                                        {(() => {
+                                            // 🐥🐥🐥🐥🐥 추출된 상세 이미지가 있으면 사용, 없으면 빈 배열
+                                            const 상세이미지들 = 상품.상세이미지들 && 상품.상세이미지들.length > 0 
+                                                ? 상품.상세이미지들 
+                                                : [];
+                                            
+                                            console.log(`🐥🐥🐥🐥🐥 상품 "${상품.상품명}" 상세 이미지 정보:`, {
+                                                상세이미지들: 상품.상세이미지들,
+                                                최종상세이미지들: 상세이미지들
+                                            });
+                                            
+                                            // 🐥🐥🐥🐥🐥 5개의 이미지 슬롯 생성
+                                            return Array.from({ length: 5 }, (_, index) => {
+                                                const 이미지URL = 상세이미지들[index];
+                                                const 선택됨 = 선택된이미지.상품인덱스 === 인덱스 && 
+                                                              선택된이미지.이미지타입 === '상세' && 
+                                                              선택된이미지.이미지인덱스 === index;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={index} 
+                                                        className={`w-32 h-32 flex-shrink-0 rounded overflow-hidden transition-all duration-200 ${
+                                                            이미지URL ? 'bg-gray-100 cursor-pointer' : 'bg-gradient-to-b from-bg-100 to-bg-100/30'
+                                                        } ${선택됨 ? 'ring-4 ring-offset-2' : 이미지URL ? 'hover:ring-2 hover:ring-gray-300' : ''}`}
+                                                        style={{
+                                                            ...(선택됨 && { '--tw-ring-color': '#5E92C6' })
+                                                        }}
+                                                        onClick={이미지URL ? () => 이미지클릭(인덱스, '상세', index) : undefined}
+                                                        tabIndex={이미지URL ? 0 : -1}
+                                                        role={이미지URL ? "button" : undefined}
+                                                        aria-label={이미지URL ? `${상품.상품명} 상세이미지 ${index + 1}` : undefined}
+                                                    >
+                                                        {이미지URL ? (
+                                                            <img 
+                                                                src={이미지URL} 
+                                                                alt={`${상품.상품명} 상세이미지 ${index + 1}`}
+                                                                className="w-full h-full object-cover"
+                                                                onLoad={() => {
+                                                                    console.log(`🐥🐥🐥🐥🐥 상세 이미지 로드 성공: ${이미지URL}`);
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            // 🐥🐥🐥🐥🐥 빈 이미지 슬롯 - 상품카드 배경색과 동일
+                                                            <div className="w-full h-full bg-gradient-to-b from-bg-100 to-bg-100/30" />
+                                                        )}
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
                                     </div>
                                 </div>
 
@@ -354,30 +757,19 @@ const 상품관리 = () => {
 
             {/* 🐥🐥🐥🐥🐥 상품이 없을 때 */}
             {상품목록.length === 0 && (
-                <div className="text-center py-12">
-                    <div className="text-gray-400 mb-4">
-                        <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">상품이 없습니다</h3>
-                    <p className="text-gray-500 mb-4">새 상품을 추가해보세요.</p>
-                    <button
-                        onClick={새상품추가}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-                    >
-                        첫 상품 추가하기
-                    </button>
+                <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+                    <h3 className="text-lg font-medium text-text-300 font-ui tracking-tight"></h3>
                 </div>
             )}
+
+
+            </div>
 
             {/* 🐥🐥🐥🐥🐥 우측하단 플로팅 버튼 - 팝업창 열기 기능으로 변경 */}
             <div className="fixed bottom-6 right-6 z-50">
                 <button
                     onClick={팝업열기}
                     className="floating-button"
-                    title="새 상품 추가"
-                    aria-label="새 상품 추가"
                 >
                     <div className="floating-button-icon" style={{ width: '18px', height: '18px' }}>
                         <svg 
@@ -395,44 +787,45 @@ const 상품관리 = () => {
                 </button>
             </div>
 
-            {/* 🐥🐥🐥🐥🐥 팝업창 추가 */}
-            <팝업창
-                열림={팝업열림}
-                닫기={팝업닫기}
-                제목="상품 검색 및 추가"
-                크기="large"
-                검색기능={true}
-            >
-                <div className="space-y-6">
-                    {/* 🐥🐥🐥🐥🐥 팝업창 내용 */}
-                    <div className="text-center py-8">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            상품 검색 및 추가
-                        </h3>
-                        <p className="text-gray-600 mb-6">
-                            검색창에 상품명을 입력하면 CNInsider에서 해당 상품을 검색하여 결과를 보여줍니다.
-                        </p>
-                        
-                        {/* 🐥🐥🐥🐥🐥 검색 결과가 없을 때 표시되는 안내 */}
-                        <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
-                            <p className="mb-2">💡 사용법:</p>
-                            <ul className="text-left space-y-1">
-                                <li>• 검색창에 "가방", "전자제품" 등 원하는 상품명을 입력하세요</li>
-                                <li>• 검색 버튼을 클릭하거나 Enter 키를 누르세요</li>
-                                <li>• CNInsider 웹사이트의 검색 결과가 팝업창에 표시됩니다</li>
-                                <li>• 검색 결과를 확인한 후 상품을 추가할 수 있습니다</li>
-                            </ul>
-                        </div>
+        {/* 🐥🐥🐥🐥🐥 팝업창 추가 */}
+        <팝업창
+            열림={팝업열림}
+            닫기={팝업닫기}
+            제목="상품 검색 및 추가"
+            크기="large"
+            검색기능={true}
+            선택된상품추가콜백={선택된상품추가처리}
+        >
+            <div className="space-y-6">
+                {/* 🐥🐥🐥🐥🐥 팝업창 내용 */}
+                <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        상품 검색 및 추가
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                        검색창에 상품명을 입력하면 CNInsider에서 해당 상품을 검색하여 결과를 보여줍니다.
+                    </p>
+                    
+                    {/* 🐥🐥🐥🐥🐥 검색 결과가 없을 때 표시되는 안내 */}
+                    <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
+                        <p className="mb-2">💡 사용법:</p>
+                        <ul className="text-left space-y-1">
+                            <li>• 검색창에 "가방", "전자제품" 등 원하는 상품명을 입력하세요</li>
+                            <li>• 검색 버튼을 클릭하거나 Enter 키를 누르세요</li>
+                            <li>• CNInsider 웹사이트의 검색 결과가 팝업창에 표시됩니다</li>
+                            <li>• 검색 결과를 확인한 후 상품을 추가할 수 있습니다</li>
+                        </ul>
                     </div>
                 </div>
-            </팝업창>
-        </div>
-    );
-};
+            </div>
+                 </팝업창>
+     </Fragment>
+     );
+ };
 
 export default 상품관리;

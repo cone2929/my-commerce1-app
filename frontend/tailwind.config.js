@@ -53,6 +53,10 @@ module.exports = {
       fontSize: {
         'large': ['1.125rem', { lineHeight: '1.75rem' }],
         'small': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base': ['1rem', { lineHeight: '1.5rem' }],
+      },
+      fontWeight: {
+        'base-bold': '600',
       },
       borderWidth: {
         '0.5': '0.5px',
@@ -75,6 +79,7 @@ module.exports = {
   plugins: [
     require("@tailwindcss/forms"),
     require("daisyui"),
+    require("@tailwindcss/line-clamp"),
   ],
   safelist: [
     'hs-accordion-active:block',
