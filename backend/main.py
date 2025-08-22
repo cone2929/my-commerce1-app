@@ -38,6 +38,7 @@ app.add_middleware(
 )
 
 @app.get("/")
+@app.head("/")
 def root():
     return {"message": "Hello, FastAPI!"}
 
