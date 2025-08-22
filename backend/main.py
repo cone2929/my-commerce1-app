@@ -23,6 +23,10 @@ import sys
 # 🐥🐥🐥🐥🐥 사용자별 브라우저 관리
 user_browsers = {}
 
+# 🐥🐥🐥🐥🐥 Render 환경 감지
+def is_render_environment():
+    return os.getenv('RENDER') == 'true' or os.getenv('RENDER_EXTERNAL_URL') is not None
+
 # 🐥🐥🐥🐥🐥 Render 환경에서 Playwright 브라우저 자동 설치
 def install_playwright_browsers():
     try:
@@ -41,10 +45,6 @@ def install_playwright_browsers():
 
 # 🐥🐥🐥🐥🐥 앱 시작 시 브라우저 설치
 install_playwright_browsers()
-
-# 🐥🐥🐥🐥🐥 Render 환경 감지
-def is_render_environment():
-    return os.getenv('RENDER') == 'true' or os.getenv('RENDER_EXTERNAL_URL') is not None
 
 
 app = FastAPI()
