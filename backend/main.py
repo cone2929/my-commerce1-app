@@ -767,4 +767,8 @@ async def 상품이미지추출(요청: 상품이미지요청):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    import os
+    
+    # 🐥🐥🐥🐥🐥 Render 환경에서는 포트를 환경변수에서 가져오기
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)
