@@ -17,9 +17,30 @@ supabase = create_client(supabase_url, supabase_key)
 # 🐥🐥🐥🐥🐥 Playwright 관련 import
 from playwright.async_api import async_playwright
 import platform
+import subprocess
+import sys
 
 # 🐥🐥🐥🐥🐥 사용자별 브라우저 관리
 user_browsers = {}
+
+# 🐥🐥🐥🐥🐥 Render 환경에서 Playwright 브라우저 자동 설치
+def install_playwright_browsers():
+    try:
+        if is_render_environment():
+            print("🐥🐥🐥🐥🐥 Render 환경 감지: Playwright 브라우저 설치 시작...")
+            # Render 환경에서 브라우저 설치
+            result = subprocess.run([
+                "playwright", "install", "chromium", "--with-deps"
+            ], capture_output=True, text=True, timeout=300)
+            print(f"🐥🐥🐥🐥🐥 설치 결과: {result.stdout}")
+            if result.stderr:
+                print(f"🐥🐥🐥🐥🐥 설치 에러: {result.stderr}")
+            print("🐥🐥🐥🐥🐥 Playwright 브라우저 설치 완료!")
+    except Exception as e:
+        print(f"🐥🐥🐥🐥🐥 Playwright 브라우저 설치 실패: {e}")
+
+# 🐥🐥🐥🐥🐥 앱 시작 시 브라우저 설치
+install_playwright_browsers()
 
 # 🐥🐥🐥🐥🐥 Render 환경 감지
 def is_render_environment():
@@ -194,16 +215,22 @@ async def 상품정보파싱(요청: 웹페이지요청):
             print(f"🐥🐥🐥🐥🐥 디버깅: 새 사용자 {user_id} 브라우저 생성")
             try:
                 playwright = await async_playwright().start()
+                
+                # 🐥🐥🐥🐥🐥 Render 환경에서는 헤드리스 모드 필수
+                browser_args = ['--no-sandbox', '--disable-dev-shm-usage']
+                if is_render_environment():
+                    browser_args.extend(['--disable-gpu', '--disable-software-rasterizer'])
+                
                 browser = await playwright.chromium.launch(
-                    headless=False,  # 🐥🐥🐥🐥🐥 헤드리스 모드 끄기
-                    args=['--no-sandbox', '--disable-dev-shm-usage', '--start-maximized']
+                    headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
+                    args=browser_args
                 )
                 page = await browser.new_page()
                 user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
             except Exception as e:
                 print(f"🐥🐥🐥🐥🐥 브라우저 생성 실패: {str(e)}")
                 # 🐥🐥🐥🐥🐥 실패 시 기본 응답 반환
-                return {"products": [], "success": False, "error": "브라우저 생성 실패"}
+                return {"products": [], "success": False, "error": f"브라우저 생성 실패: {str(e)}"}
         else:
             # 🐥🐥🐥🐥🐥 기존 사용자: 브라우저 재사용
             print(f"🐥🐥🐥🐥🐥 디버깅: 기존 사용자 {user_id} 브라우저 재사용")
@@ -411,8 +438,8 @@ async def 상품이미지추출(요청: 상품이미지요청):
                     ])
                 
                 browser = await playwright.chromium.launch(
-                    headless=False,
-                    args=browser_args + ['--start-maximized']
+                    headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
+                    args=browser_args
                 )
                 page = await browser.new_page()
                 
