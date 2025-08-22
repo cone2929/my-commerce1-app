@@ -16,13 +16,14 @@ supabase = create_client(supabase_url, supabase_key)
 
 # 🐥🐥🐥🐥🐥 Playwright 관련 import
 from playwright.async_api import async_playwright
+import platform
 
 # 🐥🐥🐥🐥🐥 사용자별 브라우저 관리
 user_browsers = {}
 
-
-
-
+# 🐥🐥🐥🐥🐥 Render 환경 감지
+def is_render_environment():
+    return os.getenv('RENDER') == 'true' or os.getenv('RENDER_EXTERNAL_URL') is not None
 
 
 app = FastAPI()
@@ -385,9 +386,32 @@ async def 상품이미지추출(요청: 상품이미지요청):
             print(f"🐥🐥🐥🐥🐥 새 사용자 {요청.사용자ID} 브라우저 생성")
             try:
                 playwright = await async_playwright().start()
+                
+                # 🐥🐥🐥🐥🐥 Render 환경에서 필요한 브라우저 옵션
+                browser_args = [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--single-process',
+                    '--disable-extensions'
+                ]
+                
+                if is_render_environment():
+                    print("🐥🐥🐥🐥🐥 Render 환경에서 브라우저 실행")
+                    browser_args.extend([
+                        '--disable-background-timer-throttling',
+                        '--disable-backgrounding-occluded-windows',
+                        '--disable-renderer-backgrounding',
+                        '--disable-features=TranslateUI',
+                        '--disable-ipc-flooding-protection'
+                    ])
+                
                 browser = await playwright.chromium.launch(
-                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
-                    args=['--no-sandbox', '--disable-setuid-sandbox']
+                    headless=True,
+                    args=browser_args
                 )
                 page = await browser.new_page()
                 
