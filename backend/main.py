@@ -213,13 +213,24 @@ async def 상품정보파싱(요청: 웹페이지요청):
         if user_id not in user_browsers:
             # 🐥🐥🐥🐥🐥 새 사용자: 브라우저 생성
             print(f"🐥🐥🐥🐥🐥 디버깅: 새 사용자 {user_id} 브라우저 생성")
+            print(f"🐥🐥🐥🐥🐥 디버깅: 현재 브라우저 수: {len(user_browsers)}개")
             try:
                 playwright = await async_playwright().start()
                 
                 # 🐥🐥🐥🐥🐥 Render 환경에서는 헤드리스 모드 필수
                 browser_args = ['--no-sandbox', '--disable-dev-shm-usage']
                 if is_render_environment():
-                    browser_args.extend(['--disable-gpu', '--disable-software-rasterizer'])
+                    browser_args.extend([
+                        '--disable-gpu', 
+                        '--disable-software-rasterizer',
+                        '--disable-web-security',
+                        '--disable-features=VizDisplayCompositor',
+                        '--disable-extensions',
+                        '--disable-plugins',
+                        '--disable-background-timer-throttling',
+                        '--disable-backgrounding-occluded-windows',
+                        '--disable-renderer-backgrounding'
+                    ])
                 
                 browser = await playwright.chromium.launch(
                     headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
@@ -236,19 +247,71 @@ async def 상품정보파싱(요청: 웹페이지요청):
         else:
             # 🐥🐥🐥🐥🐥 기존 사용자: 브라우저 재사용
             print(f"🐥🐥🐥🐥🐥 디버깅: 기존 사용자 {user_id} 브라우저 재사용")
+            print(f"🐥🐥🐥🐥🐥 디버깅: 현재 브라우저 수: {len(user_browsers)}개")
             browser = user_browsers[user_id]['browser']
             page = user_browsers[user_id]['page']
+            
+            # 🐥🐥🐥🐥🐥 브라우저 상태 확인
+            try:
+                is_closed = browser.is_closed()
+                print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 상태 - is_closed: {is_closed}")
+            except Exception as e:
+                print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 상태 확인 실패: {e}")
+                # 🐥🐥🐥🐥🐥 브라우저가 죽었다면 새로 생성
+                del user_browsers[user_id]
+                raise Exception("브라우저가 죽어서 새로 생성 필요")
         
         # 🐥🐥🐥🐥🐥 디버깅: 요청 정보 출력
         print(f"🐥🐥🐥🐥🐥 디버깅: 사용자 {user_id}, 페이지 {요청.page} 요청 시작")
         
-        # 🐥🐥🐥🐥🐥 페이지 로드 (최소한의 대기만)
+        # 🐥🐥🐥🐥🐥 페이지 로드 (안정성 우선)
         print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 시작 - {요청.url}")
-        await page.goto(요청.url, wait_until='domcontentloaded', timeout=15000)
+        await page.goto(요청.url, wait_until='domcontentloaded', timeout=30000)
         print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 완료")
         
-        # 🐥🐥🐥🐥🐥 즉시 상품 정보 추출 (대기 없이)
-        print(f"🐥🐥🐥🐥🐥 디버깅: 즉시 상품 정보 추출 시작")
+        # 🐥🐥🐥🐥🐥 상품 요소 대기 (안정성 우선)
+        print(f"🐥🐥🐥🐥🐥 디버깅: 상품 요소 대기 시작")
+        try:
+            await page.wait_for_selector('.product-eachone', state='attached', timeout=5000)
+            print(f"🐥🐥🐥🐥🐥 디버깅: .product-eachone 요소 발견")
+        except:
+            try:
+                await page.wait_for_selector('[data-v-199934d4]', state='attached', timeout=3000)
+                print(f"🐥🐥🐥🐥🐥 디버깅: [data-v-199934d4] 요소 발견")
+            except:
+                try:
+                    await page.wait_for_selector('.goods-item-animation', state='attached', timeout=2000)
+                    print(f"🐥🐥🐥🐥🐥 디버깅: .goods-item-animation 요소 발견")
+                except:
+                    print(f"🐥🐥🐥🐥🐥 디버깅: 모든 셀렉터 실패, 기본 대기")
+                    await page.wait_for_timeout(1000)
+        
+        # 🐥🐥🐥🐥🐥 이미지 로딩을 위한 대기 시간 증가
+        await page.wait_for_timeout(3000)
+        
+        # 🐥🐥🐥🐥🐥 이미지 로딩 완료 대기
+        try:
+            await page.wait_for_function("""
+                () => {
+                    const images = document.querySelectorAll('img');
+                    let loadedCount = 0;
+                    let totalCount = images.length;
+                    
+                    if (totalCount === 0) return true;
+                    
+                    for (let img of images) {
+                        if (img.complete && img.naturalHeight > 0) {
+                            loadedCount++;
+                        }
+                    }
+                    
+                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 상태', { loadedCount, totalCount });
+                    return loadedCount >= Math.min(totalCount, 10);  // 최소 10개 또는 전체 이미지
+                }
+            """, timeout=10000)
+            print("🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 완료")
+        except Exception as e:
+            print(f"🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 대기 실패: {e}")
         
         # 🐥🐥🐥🐥🐥 페이지 번호에 따라 스크롤 시뮬레이션 (최소 대기)
         if 요청.page > 1:
@@ -321,22 +384,62 @@ async def 상품정보파싱(요청: 웹페이지요청):
                             naturalWidth: imgElement ? imgElement.naturalWidth : '없음'
                         });
                         
-                        if (imgElement && imgElement.src && imgElement.complete && imgElement.naturalHeight > 0) {
+                        // 🐥🐥🐥🐥🐥 이미지를 base64로 변환 (CORS 문제 해결)
+                        let 이미지Base64 = '';
+                        console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 확인', {
+                            imgElement: !!imgElement,
+                            src: imgElement ? imgElement.src : '없음',
+                            complete: imgElement ? imgElement.complete : '없음',
+                            naturalHeight: imgElement ? imgElement.naturalHeight : '없음',
+                            naturalWidth: imgElement ? imgElement.naturalWidth : '없음'
+                        });
+                        
+                        // 🐥🐥🐥🐥🐥 이미지 변환 시도 (간단한 방법)
+                        if (imgElement && imgElement.src) {
                             try {
-                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 시작');
-                                const canvas = document.createElement('canvas');
-                                const ctx = canvas.getContext('2d');
-                                canvas.width = imgElement.naturalWidth;
-                                canvas.height = imgElement.naturalHeight;
-                                console.log('🐥🐥🐥🐥🐥 디버깅: 캔버스 크기 설정', { width: canvas.width, height: canvas.height });
-                                ctx.drawImage(imgElement, 0, 0);
-                                이미지Base64 = canvas.toDataURL('image/jpeg', 0.7);
-                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 성공', { base64Length: 이미지Base64.length });
+                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 시도');
+                                
+                                // 🐥🐥🐥🐥🐥 이미지가 로딩되지 않았다면 강제로 로딩
+                                if (!imgElement.complete || imgElement.naturalHeight === 0) {
+                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 로딩되지 않음, 강제 로딩 시도');
+                                    
+                                    // 🐥🐥🐥🐥🐥 이미지 src를 다시 설정하여 강제 로딩
+                                    const originalSrc = imgElement.src;
+                                    imgElement.src = '';
+                                    imgElement.src = originalSrc;
+                                    
+                                    // 🐥🐥🐥🐥🐥 잠시 대기 후 다시 확인
+                                    setTimeout(() => {
+                                        if (imgElement.complete && imgElement.naturalHeight > 0) {
+                                            console.log('🐥🐥🐥🐥🐥 디버깅: 강제 로딩 성공');
+                                        } else {
+                                            console.log('🐥🐥🐥🐥🐥 디버깅: 강제 로딩 실패');
+                                        }
+                                    }, 100);
+                                }
+                                
+                                // 🐥🐥🐥🐥🐥 이미지 변환 시도
+                                if (imgElement.complete && imgElement.naturalHeight > 0) {
+                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 실행', {
+                                        width: imgElement.naturalWidth,
+                                        height: imgElement.naturalHeight
+                                    });
+                                    
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    canvas.width = imgElement.naturalWidth;
+                                    canvas.height = imgElement.naturalHeight;
+                                    ctx.drawImage(imgElement, 0, 0);
+                                    이미지Base64 = canvas.toDataURL('image/jpeg', 0.7);
+                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 성공', { base64Length: 이미지Base64.length });
+                                } else {
+                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 조건 불충족');
+                                }
                             } catch (e) {
                                 console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 실패:', e);
                             }
                         } else {
-                            console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 조건 불충족');
+                            console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 또는 src 없음');
                         }
                         
                         // 🐥🐥🐥🐥🐥 상품 제목
