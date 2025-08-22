@@ -340,6 +340,21 @@ async def 상품정보파싱(요청: 웹페이지요청):
                         if (!imgElement) imgElement = element.querySelector('img');
                         const 이미지URL = imgElement ? imgElement.src : '';
                         
+                        // 🐥🐥🐥🐥🐥 이미지를 base64로 변환 (CORS 문제 해결)
+                        let 이미지Base64 = '';
+                        if (imgElement && imgElement.src) {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = imgElement.naturalWidth || 300;
+                                canvas.height = imgElement.naturalHeight || 300;
+                                ctx.drawImage(imgElement, 0, 0);
+                                이미지Base64 = canvas.toDataURL('image/jpeg', 0.8);
+                            } catch (e) {
+                                console.log('이미지 변환 실패:', e);
+                            }
+                        }
+                        
                         // 🐥🐥🐥🐥🐥 상품 제목
                         let titleElement = element.querySelector('.product-title');
                         if (!titleElement) titleElement = element.querySelector('[class*="title"]');
@@ -371,6 +386,7 @@ async def 상품정보파싱(요청: 웹페이지요청):
                         if (제목 || 이미지URL) {
                             products.push({
                                 이미지URL,
+                                이미지Base64,  // 🐥🐥🐥🐥🐥 base64 이미지 추가
                                 제목: 제목 || `상품 ${index + 1}`,
                                 가격: 가격 || '',
                                 한국어가격: 한국어가격 || '',
