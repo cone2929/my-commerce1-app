@@ -317,6 +317,7 @@ async def 상품정보파싱(요청: 웹페이지요청):
         print(f"🐥🐥🐥🐥🐥 디버깅: 최종 상품 수: {최종상품수}개")
         
         # 🐥🐥🐥🐥🐥 상품 정보 추출 (즉시 실행)
+        print(f"🐥🐥🐥🐥🐥 디버깅: 상품 정보 추출 시작")
         상품목록 = await page.evaluate("""
             () => {
                 const products = [];
@@ -336,23 +337,47 @@ async def 상품정보파싱(요청: 웹페이지요청):
                     try {
                         // 🐥🐥🐥🐥🐥 상품 이미지 (최적화)
                         let imgElement = element.querySelector('.prod-img img');
-                        if (!imgElement) imgElement = element.querySelector('.product-img img');
-                        if (!imgElement) imgElement = element.querySelector('img');
+                        if (!imgElement) {
+                            console.log('🐥🐥🐥🐥🐥 디버깅: .prod-img img 찾기 실패');
+                            imgElement = element.querySelector('.product-img img');
+                        }
+                        if (!imgElement) {
+                            console.log('🐥🐥🐥🐥🐥 디버깅: .product-img img 찾기 실패');
+                            imgElement = element.querySelector('img');
+                        }
+                        if (!imgElement) {
+                            console.log('🐥🐥🐥🐥🐥 디버깅: img 찾기 실패');
+                        } else {
+                            console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 찾기 성공', { src: imgElement.src });
+                        }
                         const 이미지URL = imgElement ? imgElement.src : '';
                         
                         // 🐥🐥🐥🐥🐥 이미지를 base64로 변환 (CORS 문제 해결)
                         let 이미지Base64 = '';
-                        if (imgElement && imgElement.src) {
+                        console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 확인', {
+                            imgElement: !!imgElement,
+                            src: imgElement ? imgElement.src : '없음',
+                            complete: imgElement ? imgElement.complete : '없음',
+                            naturalHeight: imgElement ? imgElement.naturalHeight : '없음',
+                            naturalWidth: imgElement ? imgElement.naturalWidth : '없음'
+                        });
+                        
+                        if (imgElement && imgElement.src && imgElement.complete && imgElement.naturalHeight > 0) {
                             try {
+                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 시작');
                                 const canvas = document.createElement('canvas');
                                 const ctx = canvas.getContext('2d');
-                                canvas.width = imgElement.naturalWidth || 300;
-                                canvas.height = imgElement.naturalHeight || 300;
+                                canvas.width = imgElement.naturalWidth;
+                                canvas.height = imgElement.naturalHeight;
+                                console.log('🐥🐥🐥🐥🐥 디버깅: 캔버스 크기 설정', { width: canvas.width, height: canvas.height });
                                 ctx.drawImage(imgElement, 0, 0);
-                                이미지Base64 = canvas.toDataURL('image/jpeg', 0.8);
+                                이미지Base64 = canvas.toDataURL('image/jpeg', 0.7);
+                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 성공', { base64Length: 이미지Base64.length });
                             } catch (e) {
-                                console.log('이미지 변환 실패:', e);
+                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 실패:', e);
                             }
+                        } else {
+                            console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 조건 불충족');
                         }
                         
                         // 🐥🐥🐥🐥🐥 상품 제목
@@ -384,6 +409,12 @@ async def 상품정보파싱(요청: 웹페이지요청):
                         
                         // 🐥🐥🐥🐥🐥 최소한의 정보가 있는 경우만 추가
                         if (제목 || 이미지URL) {
+                            console.log('🐥🐥🐥🐥🐥 디버깅: 상품 추가', {
+                                index: index + 1,
+                                제목: 제목 || `상품 ${index + 1}`,
+                                이미지URL: 이미지URL,
+                                이미지Base64길이: 이미지Base64 ? 이미지Base64.length : 0
+                            });
                             products.push({
                                 이미지URL,
                                 이미지Base64,  // 🐥🐥🐥🐥🐥 base64 이미지 추가
@@ -405,6 +436,14 @@ async def 상품정보파싱(요청: 웹페이지요청):
         """)
         
         print(f"🐥🐥🐥🐥🐥 디버깅: 파싱 완료 - 상품 {len(상품목록)}개 추출")
+        
+        # 🐥🐥🐥🐥🐥 상품별 이미지 정보 디버깅
+        for i, 상품 in enumerate(상품목록[:3]):  # 처음 3개만 확인
+            print(f"🐥🐥🐥🐥🐥 디버깅: 상품 {i+1} 이미지 정보", {
+                '제목': 상품.get('제목', '없음'),
+                '이미지URL': 상품.get('이미지URL', '없음'),
+                '이미지Base64길이': len(상품.get('이미지Base64', ''))
+            })
         
         # 🐥🐥🐥🐥🐥 브라우저는 닫지 않음 (재사용을 위해)
         # await browser.close()
