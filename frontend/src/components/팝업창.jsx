@@ -478,16 +478,19 @@ const 팝업창 = ({
                 ? 'https://my-commerce-app.onrender.com'
                 : 'http://localhost:8001';
             
+            // 🐥🐥🐥🐥🐥 안전한 JSON 직렬화를 위한 데이터 준비
+            const requestData = {
+                url: 검색URL,
+                page: 페이지,
+                user_id: (사용자ID && typeof 사용자ID === 'string') ? 사용자ID : "anonymous"
+            };
+            
             const response = await fetch(`${API_BASE_URL}/api/parse-products`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    url: 검색URL,
-                    page: 페이지,
-                    user_id: 사용자ID || "anonymous"  // 🐥🐥🐥🐥🐥 구글 계정 이메일 사용
-                })
+                body: JSON.stringify(requestData)
             });
 
             const data = await response.json();
