@@ -3,6 +3,7 @@ name = "my-commerce-app"
 version = "0.1.0"
 description = "해외구매대행 업무자동화 솔루션"
 authors = ["Your Name <your.email@example.com>"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
