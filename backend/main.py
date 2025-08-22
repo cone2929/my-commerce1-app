@@ -195,7 +195,7 @@ async def 상품정보파싱(요청: 웹페이지요청):
             try:
                 playwright = await async_playwright().start()
                 browser = await playwright.chromium.launch(
-                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
+                    headless=False,  # 🐥🐥🐥🐥🐥 헤드리스 모드 끄기
                     args=['--no-sandbox', '--disable-dev-shm-usage']
                 )
                 page = await browser.new_page()
@@ -411,7 +411,7 @@ async def 상품이미지추출(요청: 상품이미지요청):
                     ])
                 
                 browser = await playwright.chromium.launch(
-                    headless=True,
+                    headless=False,
                     args=browser_args
                 )
                 page = await browser.new_page()
