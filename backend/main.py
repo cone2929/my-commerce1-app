@@ -32,9 +32,9 @@ def install_playwright_browsers():
     try:
         if is_render_environment():
             print("🐥🐥🐥🐥🐥 Render 환경 감지: Playwright 브라우저 설치 시작...")
-            # Render 환경에서 브라우저 설치
+            # Render 환경에서 권한 문제 없이 브라우저 설치
             result = subprocess.run([
-                "playwright", "install", "chromium", "--with-deps"
+                sys.executable, "-m", "playwright", "install", "chromium"
             ], capture_output=True, text=True, timeout=300)
             print(f"🐥🐥🐥🐥🐥 설치 결과: {result.stdout}")
             if result.stderr:
@@ -43,7 +43,7 @@ def install_playwright_browsers():
     except Exception as e:
         print(f"🐥🐥🐥🐥🐥 Playwright 브라우저 설치 실패: {e}")
 
-# 🐥🐥🐥🐥🐥 앱 시작 시 브라우저 설치
+# 🐥🐥🐥🐥🐥 앱 시작 시 브라우저 설치 (재배포 트리거)
 install_playwright_browsers()
 
 

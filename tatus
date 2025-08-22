@@ -1,0 +1,5 @@
+[33m52ce9ca[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 함수 정의 순서 수정 - is_render_environment 함수를 먼저 정의
+[33mda09ef8[m Render 환경에서 Playwright 브라우저 자동 설치 및 헤드리스 모드 적용
+[33m1ea6593[m 백엔드 URL 수정: my-commerce-app.onrender.com
+[33m5b289b4[m 배포서버 API URL 수정 - 하드코딩된 localhost 제거
+[33m81bd726[m 브라우저 창 최대화 옵션 추가
