@@ -63,22 +63,32 @@ async def 상품정보파싱(요청: 웹페이지요청):
             print(f"🐥🐥🐥🐥🐥 디버깅: 새 사용자 {user_id} 브라우저 생성")
             try:
                 playwright = await async_playwright().start()
-                browser = await playwright.chromium.launch(
-                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
-                    executable_path="/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome",
-                    args=[
-                        '--no-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-gpu',
-                        '--disable-software-rasterizer',
-                        '--disable-extensions',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        '--disable-features=TranslateUI',
-                        '--disable-ipc-flooding-protection'
-                    ]
-                )
+                
+                # 🐥🐥🐥🐥🐥 첫 번째 시도: 기본 설정으로 브라우저 실행
+                try:
+                    browser = await playwright.chromium.launch(
+                        headless=True,
+                        args=[
+                            '--no-sandbox',
+                            '--disable-dev-shm-usage',
+                            '--disable-gpu',
+                            '--disable-software-rasterizer',
+                            '--disable-extensions',
+                            '--disable-background-timer-throttling',
+                            '--disable-backgrounding-occluded-windows',
+                            '--disable-renderer-backgrounding',
+                            '--disable-features=TranslateUI',
+                            '--disable-ipc-flooding-protection'
+                        ]
+                    )
+                except Exception as e1:
+                    print(f"🐥🐥🐥🐥🐥 첫 번째 브라우저 실행 실패: {str(e1)}")
+                    # 🐥🐥🐥🐥🐥 두 번째 시도: 최소 설정으로 브라우저 실행
+                    browser = await playwright.chromium.launch(
+                        headless=True,
+                        args=['--no-sandbox', '--disable-dev-shm-usage']
+                    )
+                
                 page = await browser.new_page()
                 user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
             except Exception as e:
@@ -268,22 +278,32 @@ async def 상품이미지추출(요청: 상품이미지요청):
             print(f"🐥🐥🐥🐥🐥 새 사용자 {요청.사용자ID} 브라우저 생성")
             try:
                 playwright = await async_playwright().start()
-                browser = await playwright.chromium.launch(
-                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
-                    executable_path="/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome",
-                    args=[
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-gpu',
-                        '--disable-software-rasterizer',
-                        '--disable-extensions',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        '--disable-features=TranslateUI',
-                        '--disable-ipc-flooding-protection'
-                    ]
-                )
+                
+                # 🐥🐥🐥🐥🐥 첫 번째 시도: 기본 설정으로 브라우저 실행
+                try:
+                    browser = await playwright.chromium.launch(
+                        headless=True,
+                        args=[
+                            '--no-sandbox',
+                            '--disable-setuid-sandbox',
+                            '--disable-gpu',
+                            '--disable-software-rasterizer',
+                            '--disable-extensions',
+                            '--disable-background-timer-throttling',
+                            '--disable-backgrounding-occluded-windows',
+                            '--disable-renderer-backgrounding',
+                            '--disable-features=TranslateUI',
+                            '--disable-ipc-flooding-protection'
+                        ]
+                    )
+                except Exception as e1:
+                    print(f"🐥🐥🐥🐥🐥 첫 번째 브라우저 실행 실패: {str(e1)}")
+                    # 🐥🐥🐥🐥🐥 두 번째 시도: 최소 설정으로 브라우저 실행
+                    browser = await playwright.chromium.launch(
+                        headless=True,
+                        args=['--no-sandbox', '--disable-setuid-sandbox']
+                    )
+                
                 page = await browser.new_page()
                 
                 # 🐥🐥🐥🐥🐥 사용자별 브라우저 저장
