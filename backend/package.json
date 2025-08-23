@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "해외구매대행 업무자동화 백엔드 API",
   "scripts": {
-    "build": "pip install -r requirements.txt && playwright install chromium",
+    "build": "pip install -r requirements.txt && playwright install",
     "start": "uvicorn main:app --host 0.0.0.0 --port 10001"
   },
   "engines": {

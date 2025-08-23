@@ -65,6 +65,7 @@ async def 상품정보파싱(요청: 웹페이지요청):
                 playwright = await async_playwright().start()
                 browser = await playwright.chromium.launch(
                     headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
+                    executable_path="/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome",
                     args=[
                         '--no-sandbox',
                         '--disable-dev-shm-usage',
@@ -269,6 +270,7 @@ async def 상품이미지추출(요청: 상품이미지요청):
                 playwright = await async_playwright().start()
                 browser = await playwright.chromium.launch(
                     headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
+                    executable_path="/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome",
                     args=[
                         '--no-sandbox',
                         '--disable-setuid-sandbox',
