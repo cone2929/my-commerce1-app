@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.responses import Response
-import base64
 import asyncio
 import urllib.parse
 import time
@@ -426,7 +425,7 @@ async def 상품정보파싱(요청: 웹페이지요청):
         
         # 🐥🐥🐥🐥🐥 상품 정보 추출 (즉시 실행)
         상품추출시작시간 = time.time()
-        print(f"🐥🐥🐥🐥🐥 [상품 추출 시작] Base64 변환 포함 상품 정보 추출 시작", {
+        print(f"🐥🐥🐥🐥🐥 [상품 추출 시작] 상품 정보 추출 시작", {
             "시작시간": time.strftime("%Y-%m-%d %H:%M:%S"),
             "예상상품수": 최종상품수
         })
@@ -464,138 +463,6 @@ async def 상품정보파싱(요청: 웹페이지요청):
                         }
                         const 이미지URL = imgElement ? imgElement.src : '';
                         
-                        // 🐥🐥🐥🐥🐥 Base64 변환 시작 - 상세 로깅
-                        const base64StartTime = performance.now();
-                        let 이미지Base64 = '';
-                        let base64변환성공 = false;
-                        let base64변환실패이유 = '';
-                        
-                        console.log(`🐥🐥🐥🐥🐥 [Base64 변환 시작] 상품 ${index + 1}번째 이미지 처리 시작`, {
-                            상품인덱스: index + 1,
-                            시작시간: new Date().toISOString(),
-                            이미지요소존재: !!imgElement,
-                            이미지URL: imgElement ? imgElement.src : '없음',
-                            이미지로딩상태: imgElement ? {
-                                complete: imgElement.complete,
-                                naturalHeight: imgElement.naturalHeight,
-                                naturalWidth: imgElement.naturalWidth,
-                                width: imgElement.width,
-                                height: imgElement.height
-                            } : '이미지요소없음'
-                        });
-                        
-                        // 🐥🐥🐥🐥🐥 이미지 변환 시도 (상세 로깅)
-                        if (imgElement && imgElement.src) {
-                            try {
-                                console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 이미지 변환 시도 시작`);
-                                
-                                // 🐥🐥🐥🐥🐥 이미지가 로딩되지 않았다면 강제로 로딩
-                                if (!imgElement.complete || imgElement.naturalHeight === 0) {
-                                    console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 이미지 로딩되지 않음, 강제 로딩 시도`);
-                                    
-                                    const 강제로딩시작시간 = performance.now();
-                                    
-                                    // 🐥🐥🐥🐥🐥 이미지 src를 다시 설정하여 강제 로딩
-                                    const originalSrc = imgElement.src;
-                                    imgElement.src = '';
-                                    imgElement.src = originalSrc;
-                                    
-                                    // 🐥🐥🐥🐥🐥 잠시 대기 후 다시 확인
-                                    setTimeout(() => {
-                                        const 강제로딩완료시간 = performance.now();
-                                        const 강제로딩소요시간 = 강제로딩완료시간 - 강제로딩시작시간;
-                                        
-                                        if (imgElement.complete && imgElement.naturalHeight > 0) {
-                                            console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 강제 로딩 성공`, {
-                                                소요시간: 강제로딩소요시간.toFixed(2) + 'ms',
-                                                로딩후크기: `${imgElement.naturalWidth}x${imgElement.naturalHeight}`
-                                            });
-                                        } else {
-                                            console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 강제 로딩 실패`, {
-                                                소요시간: 강제로딩소요시간.toFixed(2) + 'ms',
-                                                실패이유: '이미지 로딩 완료되지 않음'
-                                            });
-                                            base64변환실패이유 = '강제 로딩 실패';
-                                        }
-                                    }, 100);
-                                }
-                                
-                                // 🐥🐥🐥🐥🐥 이미지 변환 시도
-                                if (imgElement.complete && imgElement.naturalHeight > 0) {
-                                    const 변환시작시간 = performance.now();
-                                    
-                                    console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 Canvas 변환 실행`, {
-                                        원본크기: `${imgElement.naturalWidth}x${imgElement.naturalHeight}`,
-                                        변환시작시간: new Date().toISOString()
-                                    });
-                                    
-                                    const canvas = document.createElement('canvas');
-                                    const ctx = canvas.getContext('2d');
-                                    canvas.width = imgElement.naturalWidth;
-                                    canvas.height = imgElement.naturalHeight;
-                                    ctx.drawImage(imgElement, 0, 0);
-                                    
-                                    const canvas완료시간 = performance.now();
-                                    console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 Canvas 그리기 완료`, {
-                                        Canvas소요시간: (canvas완료시간 - 변환시작시간).toFixed(2) + 'ms'
-                                    });
-                                    
-                                    const toDataURL시작시간 = performance.now();
-                                    이미지Base64 = canvas.toDataURL('image/jpeg', 0.7);
-                                    const toDataURL완료시간 = performance.now();
-                                    
-                                    const 전체소요시간 = toDataURL완료시간 - base64StartTime;
-                                    const toDataURL소요시간 = toDataURL완료시간 - toDataURL시작시간;
-                                    
-                                    console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 변환 성공`, {
-                                        전체소요시간: 전체소요시간.toFixed(2) + 'ms',
-                                        toDataURL소요시간: toDataURL소요시간.toFixed(2) + 'ms',
-                                        Base64길이: 이미지Base64.length,
-                                        Base64크기: (이미지Base64.length * 0.75 / 1024).toFixed(2) + 'KB',
-                                        완료시간: new Date().toISOString()
-                                    });
-                                    
-                                    base64변환성공 = true;
-                                } else {
-                                    const 실패시간 = performance.now();
-                                    const 실패소요시간 = 실패시간 - base64StartTime;
-                                    
-                                    console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 변환 조건 불충족`, {
-                                        소요시간: 실패소요시간.toFixed(2) + 'ms',
-                                        실패이유: '이미지 로딩 미완료',
-                                        이미지상태: {
-                                            complete: imgElement.complete,
-                                            naturalHeight: imgElement.naturalHeight,
-                                            naturalWidth: imgElement.naturalWidth
-                                        }
-                                    });
-                                    base64변환실패이유 = '이미지 로딩 미완료';
-                                }
-                            } catch (e) {
-                                const 에러시간 = performance.now();
-                                const 에러소요시간 = 에러시간 - base64StartTime;
-                                
-                                console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 변환 실패`, {
-                                    소요시간: 에러소요시간.toFixed(2) + 'ms',
-                                    에러메시지: e.message,
-                                    에러스택: e.stack,
-                                    실패시간: new Date().toISOString()
-                                });
-                                base64변환실패이유 = e.message;
-                            }
-                        } else {
-                            const 실패시간 = performance.now();
-                            const 실패소요시간 = 실패시간 - base64StartTime;
-                            
-                            console.log(`🐥🐥🐥🐥🐥 [Base64 변환] 상품 ${index + 1}번째 변환 시도 불가`, {
-                                소요시간: 실패소요시간.toFixed(2) + 'ms',
-                                실패이유: '이미지 요소 또는 src 없음',
-                                이미지요소존재: !!imgElement,
-                                이미지URL존재: imgElement ? !!imgElement.src : false
-                            });
-                            base64변환실패이유 = '이미지 요소 또는 src 없음';
-                        }
-                        
                         // 🐥🐥🐥🐥🐥 상품 제목
                         let titleElement = element.querySelector('.product-title');
                         if (!titleElement) titleElement = element.querySelector('[class*="title"]');
@@ -628,12 +495,10 @@ async def 상품정보파싱(요청: 웹페이지요청):
                             console.log('🐥🐥🐥🐥🐥 디버깅: 상품 추가', {
                                 index: index + 1,
                                 제목: 제목 || `상품 ${index + 1}`,
-                                이미지URL: 이미지URL,
-                                이미지Base64길이: 이미지Base64 ? 이미지Base64.length : 0
+                                이미지URL: 이미지URL
                             });
                             products.push({
                                 이미지URL,
-                                이미지Base64,  // 🐥🐥🐥🐥🐥 base64 이미지 추가
                                 제목: 제목 || `상품 ${index + 1}`,
                                 가격: 가격 || '',
                                 한국어가격: 한국어가격 || '',
@@ -646,47 +511,6 @@ async def 상품정보파싱(요청: 웹페이지요청):
                     }
                 });
                 
-                // 🐥🐥🐥🐥🐥 Base64 변환 통계 계산
-                const base64통계 = {
-                    전체상품수: products.length,
-                    Base64성공수: 0,
-                    Base64실패수: 0,
-                    총Base64크기: 0,
-                    평균Base64크기: 0,
-                    최대Base64크기: 0,
-                    최소Base64크기: Infinity,
-                    성공률: 0
-                };
-                
-                products.forEach((product, index) => {
-                    if (product.이미지Base64 && product.이미지Base64.length > 0) {
-                        base64통계.Base64성공수++;
-                        const base64크기 = product.이미지Base64.length * 0.75 / 1024; // KB
-                        base64통계.총Base64크기 += base64크기;
-                        base64통계.최대Base64크기 = Math.max(base64통계.최대Base64크기, base64크기);
-                        base64통계.최소Base64크기 = Math.min(base64통계.최소Base64크기, base64크기);
-                    } else {
-                        base64통계.Base64실패수++;
-                    }
-                });
-                
-                if (base64통계.Base64성공수 > 0) {
-                    base64통계.평균Base64크기 = base64통계.총Base64크기 / base64통계.Base64성공수;
-                }
-                base64통계.성공률 = (base64통계.Base64성공수 / base64통계.전체상품수 * 100);
-                
-                console.log('🐥🐥🐥🐥🐥 [Base64 변환 완료] 전체 통계', {
-                    전체상품수: base64통계.전체상품수,
-                    Base64성공수: base64통계.Base64성공수,
-                    Base64실패수: base64통계.Base64실패수,
-                    성공률: base64통계.성공률.toFixed(2) + '%',
-                    총Base64크기: base64통계.총Base64크기.toFixed(2) + 'KB',
-                    평균Base64크기: base64통계.평균Base64크기.toFixed(2) + 'KB',
-                    최대Base64크기: base64통계.최대Base64크기.toFixed(2) + 'KB',
-                    최소Base64크기: base64통계.최소Base64크기 === Infinity ? 'N/A' : base64통계.최소Base64크기.toFixed(2) + 'KB',
-                    완료시간: new Date().toISOString()
-                });
-                
                 console.log('🐥🐥🐥🐥🐥 디버깅: 추출된 상품 수:', products.length);
                 return products;
             }
@@ -695,7 +519,7 @@ async def 상품정보파싱(요청: 웹페이지요청):
         상품추출완료시간 = time.time()
         상품추출소요시간 = 상품추출완료시간 - 상품추출시작시간
         
-        print(f"🐥🐥🐥🐥🐥 [상품 추출 완료] Base64 변환 포함 상품 정보 추출 완료", {
+        print(f"🐥🐥🐥🐥🐥 [상품 추출 완료] 상품 정보 추출 완료", {
             "완료시간": time.strftime("%Y-%m-%d %H:%M:%S"),
             "상품추출소요시간": f"{상품추출소요시간:.2f}초",
             "실제상품수": len(상품목록)
@@ -707,8 +531,7 @@ async def 상품정보파싱(요청: 웹페이지요청):
         for i, 상품 in enumerate(상품목록[:3]):  # 처음 3개만 확인
             print(f"🐥🐥🐥🐥🐥 디버깅: 상품 {i+1} 이미지 정보", {
                 '제목': 상품.get('제목', '없음'),
-                '이미지URL': 상품.get('이미지URL', '없음'),
-                '이미지Base64길이': len(상품.get('이미지Base64', ''))
+                '이미지URL': 상품.get('이미지URL', '없음')
             })
         
         # 🐥🐥🐥🐥🐥 브라우저는 닫지 않음 (재사용을 위해)

@@ -733,7 +733,7 @@ const 팝업창 = ({
                                      {/* 🐥🐥🐥🐥🐥 상품 이미지 */}
                                      <div className="relative h-48 bg-gray-100">
                                          <img 
-                                             src={상품.이미지Base64 || 상품.이미지URL} 
+                                             src={상품.이미지URL} 
                                              alt={상품.제목} 
                                              className="w-full h-full object-cover"
                                              onError={(e) => {
