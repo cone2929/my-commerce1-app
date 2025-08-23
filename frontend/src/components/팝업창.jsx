@@ -192,8 +192,9 @@ const 팝업창 = ({
         }
         
         try {
-            // 🐥🐥🐥🐥🐥 환경변수로 API URL 관리
-            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+            const API_BASE_URL = process.env.NODE_ENV === 'production'
+                ? 'https://my-commerce-app.onrender.com'
+                : 'http://localhost:8001';
             
             const response = await fetch(`${API_BASE_URL}/api/extract-product-images`, {
                 method: 'POST',
@@ -208,15 +209,14 @@ const 팝업창 = ({
             
             const data = await response.json();
             
-            console.log('🐥🐥🐥🐥🐥 이미지 추출 API 응답:', data);
+
             
             if (data.success && data.결과 && data.결과.length > 0) {
                 const 결과 = data.결과[0];
-                console.log('🐥🐥🐥🐥🐥 개별 상품 결과:', 결과);
+
                 
                 if (결과.성공 && (결과.이미지들 || 결과.상세이미지들)) {
-                    console.log('🐥🐥🐥🐥🐥 추출된 썸네일 이미지들:', 결과.이미지들);
-                    console.log('🐥🐥🐥🐥🐥 추출된 상세 이미지들:', 결과.상세이미지들);
+
                     
                     // 🐥🐥🐥🐥🐥 썸네일 이미지 필터링: data:로 시작하는 값과 중복값 제외
                     const 필터된썸네일이미지들 = (결과.이미지들 || []).filter((이미지URL, 인덱스, 배열) => {
@@ -246,33 +246,31 @@ const 팝업창 = ({
                         return 배열.indexOf(이미지URL) === 인덱스;
                     });
                     
-                    console.log('🐥🐥🐥🐥🐥 필터링된 썸네일 이미지들:', 필터된썸네일이미지들);
-                    console.log('🐥🐥🐥🐥🐥 필터링된 상세 이미지들:', 필터된상세이미지들);
+
                     
                     // 🐥🐥🐥🐥🐥 앞에서부터 5개만 사용
                     const 최종썸네일이미지들 = 필터된썸네일이미지들.slice(0, 5);
                     const 최종상세이미지들 = 필터된상세이미지들.slice(0, 5);
                     
-                    console.log('🐥🐥🐥🐥🐥 최종 썸네일 이미지들 (5개):', 최종썸네일이미지들);
-                    console.log('🐥🐥🐥🐥🐥 최종 상세 이미지들 (5개):', 최종상세이미지들);
+
                     
                     // 🐥🐥🐥🐥🐥 상품 정보 변환
                     const 변환된상품 = 상품정보변환(상품);
                     변환된상품.썸네일이미지들 = 최종썸네일이미지들;
                     변환된상품.상세이미지들 = 최종상세이미지들;
                     
-                    console.log('🐥🐥🐥🐥🐥 변환된 상품:', 변환된상품);
+
                     return 변환된상품;
                 } else {
-                    console.log('🐥🐥🐥🐥🐥 이미지 추출 실패 또는 이미지 없음:', 결과);
+
                 }
             } else {
-                console.log('🐥🐥🐥🐥🐥 API 응답 실패:', data);
+
             }
             
             // 🐥🐥🐥🐥🐥 이미지 추출 실패시 기본 정보로 반환
             const 기본상품 = 상품정보변환(상품);
-            console.log('🐥🐥🐥🐥🐥 기본 상품 반환:', 기본상품);
+
             return 기본상품;
             
         } catch (error) {
@@ -476,35 +474,28 @@ const 팝업창 = ({
             // 🐥🐥🐥🐥 검색어를 URL로 변환 (페이지 번호 추가)
             const 검색URL = `https://www.cninsider.co.kr/mall/#/product?keywords=${encodeURIComponent(검색어)}&type=text&imageAddress=&searchDiff=1`;
             
-            // 🐥🐥🐥🐥🐥 환경변수로 API URL 관리
-            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+            const API_BASE_URL = process.env.NODE_ENV === 'production'
+                ? 'https://my-commerce-app.onrender.com'
+                : 'http://localhost:8001';
+            
+            // 🐥🐥🐥🐥🐥 안전한 JSON 직렬화를 위한 데이터 준비
+            const requestData = {
+                url: 검색URL,
+                page: 페이지,
+                user_id: (사용자ID && typeof 사용자ID === 'string') ? 사용자ID : "anonymous"
+            };
             
             const response = await fetch(`${API_BASE_URL}/api/parse-products`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    url: 검색URL,
-                    page: 페이지,
-                    user_id: 사용자ID || "anonymous"  // 🐥🐥🐥🐥🐥 구글 계정 이메일 사용
-                })
+                body: JSON.stringify(requestData)
             });
 
             const data = await response.json();
             
             if (data.success) {
-                // 🐥🐥🐥🐥🐥 검색 결과에서 상품 썸네일 이미지 URL 로그 출력
-                console.log('🐥🐥🐥🐥🐥 검색 결과 상품 목록:', data.products);
-                data.products.forEach((상품, 인덱스) => {
-                    console.log(`🐥🐥🐥🐥🐥 상품 ${인덱스 + 1} 썸네일 이미지 URL:`, {
-                        제목: 상품.제목,
-                        이미지URL: 상품.이미지URL,
-                        가격: 상품.가격,
-                        한국어가격: 상품.한국어가격
-                    });
-                });
-                
                 if (페이지 === 1) {
                     set상품목록(data.products);
                     set검색실행이_완료되었는지(true);
@@ -515,18 +506,6 @@ const 팝업창 = ({
                         const 새로운상품들 = data.products.filter(item => 
                             !기존상품들.includes(item.제목 + item.이미지URL)
                         );
-                        
-                        // 🐥🐥🐥🐥🐥 더보기에서 추가된 상품들의 썸네일 이미지 URL 로그 출력
-                        console.log('🐥🐥🐥🐥🐥 더보기 추가 상품들:', 새로운상품들);
-                        새로운상품들.forEach((상품, 인덱스) => {
-                            console.log(`🐥🐥🐥🐥🐥 더보기 상품 ${인덱스 + 1} 썸네일 이미지 URL:`, {
-                                제목: 상품.제목,
-                                이미지URL: 상품.이미지URL,
-                                가격: 상품.가격,
-                                한국어가격: 상품.한국어가격
-                            });
-                        });
-                        
                         return [...prev, ...새로운상품들];
                     });
                 }
@@ -724,16 +703,7 @@ const 팝업창 = ({
                                          {/* 🐥🐥🐥🐥🐥 상품 목록 */}
                      {상품목록.length > 0 && (
                          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                             {상품목록.map((상품, index) => {
-                                 // 🐥🐥🐥🐥🐥 렌더링 시점에 상품 썸네일 이미지 URL 로그 출력
-                                 console.log(`🐥🐥🐥🐥🐥 렌더링 상품 ${index + 1}:`, {
-                                     제목: 상품.제목,
-                                     이미지URL: 상품.이미지URL,
-                                     가격: 상품.가격,
-                                     한국어가격: 상품.한국어가격
-                                 });
-                                 
-                                 return (
+                             {상품목록.map((상품, index) => (
                                  <div key={index} className="product-item bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200 relative group cursor-pointer" onClick={() => 개별상품선택처리(index, !선택된상품들.has(index))}>
                                      {/* 🐥🐥🐥🐥🐥 체크박스 - 우측상단에 배치 */}
                                      <div className="absolute top-2 right-2 z-10">
@@ -763,11 +733,11 @@ const 팝업창 = ({
                                      {/* 🐥🐥🐥🐥🐥 상품 이미지 */}
                                      <div className="relative h-48 bg-gray-100">
                                          <img 
-                                             src={상품.이미지URL} 
+                                             src={상품.이미지Base64 || 상품.이미지URL} 
                                              alt={상품.제목} 
                                              className="w-full h-full object-cover"
                                              onError={(e) => {
-                                                 e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDMTE2LjU2OSA3MCAxMzAgODMuNDMxIDMwIDEwMEMxMzAgMTE2LjU2OSAxMTYuNTY5IDEzMCAxMDAgMTMwQzgzLjQzMSAxMzAgNzAgMTE2LjU2OSA3MCAxMEM3MCA4My40MzEgODMuNDMxIDcwIDEwMCA3MFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                                 e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDMTE2LjU2OSA3MCAxMzAgODMuNDMxIDMwIDEwMEMxMzAgMTE2LjU2OSAxMTYuNTY5IDEzMCAxMDAgMTMwQzgzLjQzMSAxMzAgNzAgMTE2LjU2OSA3MCAxMEM3MCA4My40MzEgODMuNDMxIDcwIDEwMCA3MFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
                                              }}
                                          />
 
@@ -794,8 +764,7 @@ const 팝업창 = ({
                                          )}
                                      </div>
                                  </div>
-                             );
-                             })}
+                             ))}
                              
                              {/* 🐥🐥🐥🐥🐥 더보기 로딩 */}
                              {더보기로딩 && (
