@@ -192,9 +192,8 @@ const 팝업창 = ({
         }
         
         try {
-            const API_BASE_URL = process.env.NODE_ENV === 'production'
-                ? 'https://my-commerce-app.onrender.com'
-                : 'http://localhost:8001';
+            // 🐥🐥🐥🐥🐥 환경변수로 API URL 관리
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
             
             const response = await fetch(`${API_BASE_URL}/api/extract-product-images`, {
                 method: 'POST',
@@ -477,7 +476,10 @@ const 팝업창 = ({
             // 🐥🐥🐥🐥 검색어를 URL로 변환 (페이지 번호 추가)
             const 검색URL = `https://www.cninsider.co.kr/mall/#/product?keywords=${encodeURIComponent(검색어)}&type=text&imageAddress=&searchDiff=1`;
             
-            const response = await fetch('http://localhost:8001/api/parse-products', {
+            // 🐥🐥🐥🐥🐥 환경변수로 API URL 관리
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+            
+            const response = await fetch(`${API_BASE_URL}/api/parse-products`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
