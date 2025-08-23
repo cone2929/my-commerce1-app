@@ -84,10 +84,18 @@ async def 상품정보파싱(요청: 웹페이지요청):
                 except Exception as e1:
                     print(f"🐥🐥🐥🐥🐥 첫 번째 브라우저 실행 실패: {str(e1)}")
                     # 🐥🐥🐥🐥🐥 두 번째 시도: 최소 설정으로 브라우저 실행
-                    browser = await playwright.chromium.launch(
-                        headless=True,
-                        args=['--no-sandbox', '--disable-dev-shm-usage']
-                    )
+                    try:
+                        browser = await playwright.chromium.launch(
+                            headless=True,
+                            args=['--no-sandbox', '--disable-dev-shm-usage']
+                        )
+                    except Exception as e2:
+                        print(f"🐥🐥🐥🐥🐥 두 번째 브라우저 실행 실패: {str(e2)}")
+                        # 🐥🐥🐥🐥🐥 세 번째 시도: Firefox 사용
+                        browser = await playwright.firefox.launch(
+                            headless=True,
+                            args=['--no-sandbox']
+                        )
                 
                 page = await browser.new_page()
                 user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
@@ -299,10 +307,18 @@ async def 상품이미지추출(요청: 상품이미지요청):
                 except Exception as e1:
                     print(f"🐥🐥🐥🐥🐥 첫 번째 브라우저 실행 실패: {str(e1)}")
                     # 🐥🐥🐥🐥🐥 두 번째 시도: 최소 설정으로 브라우저 실행
-                    browser = await playwright.chromium.launch(
-                        headless=True,
-                        args=['--no-sandbox', '--disable-setuid-sandbox']
-                    )
+                    try:
+                        browser = await playwright.chromium.launch(
+                            headless=True,
+                            args=['--no-sandbox', '--disable-setuid-sandbox']
+                        )
+                    except Exception as e2:
+                        print(f"🐥🐥🐥🐥🐥 두 번째 브라우저 실행 실패: {str(e2)}")
+                        # 🐥🐥🐥🐥🐥 세 번째 시도: Firefox 사용
+                        browser = await playwright.firefox.launch(
+                            headless=True,
+                            args=['--no-sandbox']
+                        )
                 
                 page = await browser.new_page()
                 
