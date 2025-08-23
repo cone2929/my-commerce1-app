@@ -16,35 +16,13 @@ supabase = create_client(supabase_url, supabase_key)
 
 # 🐥🐥🐥🐥🐥 Playwright 관련 import
 from playwright.async_api import async_playwright
-import platform
-import subprocess
-import sys
 
 # 🐥🐥🐥🐥🐥 사용자별 브라우저 관리
 user_browsers = {}
 
-# 🐥🐥🐥🐥🐥 Render 환경 감지
-def is_render_environment():
-    return os.getenv('RENDER') == 'true' or os.getenv('RENDER_EXTERNAL_URL') is not None
 
-# 🐥🐥🐥🐥🐥 Render 환경에서 Playwright 브라우저 자동 설치
-def install_playwright_browsers():
-    try:
-        if is_render_environment():
-            print("🐥🐥🐥🐥🐥 Render 환경 감지: Playwright 브라우저 설치 시작...")
-            # Render 환경에서 권한 문제 없이 브라우저 설치
-            result = subprocess.run([
-                sys.executable, "-m", "playwright", "install", "chromium"
-            ], capture_output=True, text=True, timeout=300)
-            print(f"🐥🐥🐥🐥🐥 설치 결과: {result.stdout}")
-            if result.stderr:
-                print(f"🐥🐥🐥🐥🐥 설치 에러: {result.stderr}")
-            print("🐥🐥🐥🐥🐥 Playwright 브라우저 설치 완료!")
-    except Exception as e:
-        print(f"🐥🐥🐥🐥🐥 Playwright 브라우저 설치 실패: {e}")
 
-# 🐥🐥🐥🐥🐥 앱 시작 시 브라우저 설치 (재배포 트리거)
-install_playwright_browsers()
+
 
 
 app = FastAPI()
@@ -59,7 +37,6 @@ app.add_middleware(
 )
 
 @app.get("/")
-@app.head("/")
 def root():
     return {"message": "Hello, FastAPI!"}
 
@@ -213,107 +190,47 @@ async def 상품정보파싱(요청: 웹페이지요청):
         if user_id not in user_browsers:
             # 🐥🐥🐥🐥🐥 새 사용자: 브라우저 생성
             print(f"🐥🐥🐥🐥🐥 디버깅: 새 사용자 {user_id} 브라우저 생성")
-            print(f"🐥🐥🐥🐥🐥 디버깅: 현재 브라우저 수: {len(user_browsers)}개")
             try:
                 playwright = await async_playwright().start()
-                
-                # 🐥🐥🐥🐥🐥 Render 환경에서는 헤드리스 모드 필수
-                browser_args = ['--no-sandbox', '--disable-dev-shm-usage']
-                if is_render_environment():
-                    browser_args.extend([
-                        '--disable-gpu', 
-                        '--disable-software-rasterizer',
-                        '--disable-web-security',
-                        '--disable-features=VizDisplayCompositor',
-                        '--disable-extensions',
-                        '--disable-plugins',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding'
-                    ])
-                
                 browser = await playwright.chromium.launch(
-                    headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
-                    args=browser_args,
-                    timeout=120000  # 🐥🐥🐥🐥🐥 브라우저 시작 타임아웃 늘리기
+                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
+                    args=['--no-sandbox', '--disable-dev-shm-usage']
                 )
                 page = await browser.new_page()
-                print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 및 페이지 생성 완료")
                 user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
             except Exception as e:
                 print(f"🐥🐥🐥🐥🐥 브라우저 생성 실패: {str(e)}")
                 # 🐥🐥🐥🐥🐥 실패 시 기본 응답 반환
-                return {"products": [], "success": False, "error": f"브라우저 생성 실패: {str(e)}"}
+                return {"products": [], "success": False, "error": "브라우저 생성 실패"}
         else:
             # 🐥🐥🐥🐥🐥 기존 사용자: 브라우저 재사용
             print(f"🐥🐥🐥🐥🐥 디버깅: 기존 사용자 {user_id} 브라우저 재사용")
-            print(f"🐥🐥🐥🐥🐥 디버깅: 현재 브라우저 수: {len(user_browsers)}개")
             browser = user_browsers[user_id]['browser']
             page = user_browsers[user_id]['page']
-            
-            # 🐥🐥🐥🐥🐥 브라우저 상태 확인
-            try:
-                is_closed = browser.is_closed()
-                print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 상태 - is_closed: {is_closed}")
-            except Exception as e:
-                print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 상태 확인 실패: {e}")
-                # 🐥🐥🐥🐥🐥 브라우저가 죽었다면 새로 생성
-                del user_browsers[user_id]
-                raise Exception("브라우저가 죽어서 새로 생성 필요")
         
         # 🐥🐥🐥🐥🐥 디버깅: 요청 정보 출력
         print(f"🐥🐥🐥🐥🐥 디버깅: 사용자 {user_id}, 페이지 {요청.page} 요청 시작")
         
-        # 🐥🐥🐥🐥🐥 페이지 로드 (안정성 우선)
-        print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 시작 - {요청.url}")
+        # 🐥🐥🐥🐥🐥 페이지 로드 대기 (최적화)
         await page.goto(요청.url, wait_until='domcontentloaded', timeout=30000)
-        print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 완료")
         
-        # 🐥🐥🐥🐥🐥 상품 요소 대기 (안정성 우선)
-        print(f"🐥🐥🐥🐥🐥 디버깅: 상품 요소 대기 시작")
+        # 🐥🐥🐥🐥🐥 상품 요소가 클릭 가능할 때까지 조건부 대기 (attached 상태)
         try:
             await page.wait_for_selector('.product-eachone', state='attached', timeout=5000)
-            print(f"🐥🐥🐥🐥🐥 디버깅: .product-eachone 요소 발견")
         except:
             try:
                 await page.wait_for_selector('[data-v-199934d4]', state='attached', timeout=3000)
-                print(f"🐥🐥🐥🐥🐥 디버깅: [data-v-199934d4] 요소 발견")
             except:
                 try:
                     await page.wait_for_selector('.goods-item-animation', state='attached', timeout=2000)
-                    print(f"🐥🐥🐥🐥🐥 디버깅: .goods-item-animation 요소 발견")
                 except:
-                    print(f"🐥🐥🐥🐥🐥 디버깅: 모든 셀렉터 실패, 기본 대기")
+                    # 🐥🐥🐥🐥🐥 모든 셀렉터가 실패해도 기본 대기
                     await page.wait_for_timeout(1000)
         
-        # 🐥🐥🐥🐥🐥 이미지 로딩을 위한 대기 시간 증가
-        await page.wait_for_timeout(3000)
+        # 🐥🐥🐥🐥🐥 클릭 가능 확인 후 무조건 대기 1초 추가
+        await page.wait_for_timeout(1000)
         
-        # 🐥🐥🐥🐥🐥 이미지 로딩 완료 대기
-        try:
-            await page.wait_for_function("""
-                () => {
-                    const images = document.querySelectorAll('img');
-                    let loadedCount = 0;
-                    let totalCount = images.length;
-                    
-                    if (totalCount === 0) return true;
-                    
-                    for (let img of images) {
-                        if (img.complete && img.naturalHeight > 0) {
-                            loadedCount++;
-                        }
-                    }
-                    
-                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 상태', { loadedCount, totalCount });
-                    return loadedCount >= Math.min(totalCount, 10);  // 최소 10개 또는 전체 이미지
-                }
-            """, timeout=10000)
-            print("🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 완료")
-        except Exception as e:
-            print(f"🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 대기 실패: {e}")
-        
-        # 🐥🐥🐥🐥🐥 페이지 번호에 따라 스크롤 시뮬레이션 (최소 대기)
+        # 🐥🐥🐥🐥🐥 페이지 번호에 따라 스크롤 시뮬레이션
         if 요청.page > 1:
             print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 {요청.page} 스크롤 시작")
             
@@ -324,14 +241,46 @@ async def 상품정보파싱(요청: 웹페이지요청):
             # 🐥🐥🐥🐥🐥 현재 화면 기준 가장 아래로 스크롤
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             
-            # 🐥🐥🐥🐥🐥 최소한의 대기만 (3초)
-            await page.wait_for_timeout(3000)
+            # 🐥🐥🐥🐥🐥 새로운 상품들이 로드될 때까지 조건부 대기
+            try:
+                await page.wait_for_function("""
+                    () => {
+                        const currentCount = document.querySelectorAll('.product-eachone, [data-v-199934d4], .goods-item-animation').length;
+                        return currentCount > """ + str(스크롤전상품수) + """;
+                    }
+                """, timeout=15000)
+                
+                # 🐥🐥🐥🐥🐥 스크롤 후 상품 개수 확인
+                스크롤후상품수 = await page.evaluate("document.querySelectorAll('.product-eachone, [data-v-199934d4], .goods-item-animation').length")
+                print(f"🐥🐥🐥🐥🐥 디버깅: 스크롤 후 상품 수: {스크롤후상품수}개 (증가: {스크롤후상품수 - 스크롤전상품수}개)")
+                
+            except:
+                print(f"🐥🐥🐥🐥🐥 디버깅: 새로운 상품 로딩 대기 실패")
             
-            # 🐥🐥🐥🐥🐥 스크롤 후 상품 개수 확인
-            스크롤후상품수 = await page.evaluate("document.querySelectorAll('.product-eachone, [data-v-199934d4], .goods-item-animation').length")
-            print(f"🐥🐥🐥🐥🐥 디버깅: 스크롤 후 상품 수: {스크롤후상품수}개 (증가: {스크롤후상품수 - 스크롤전상품수}개)")
+            # 🐥🐥🐥🐥🐥 이미지 로딩 완료까지 대기 (최적화)
+            try:
+                await page.wait_for_function("""
+                    () => {
+                        const images = document.querySelectorAll('img');
+                        let loadedCount = 0;
+                        let totalCount = 0;
+                        
+                        for (let img of images) {
+                            totalCount++;
+                            if (img.complete && img.naturalHeight > 0) {
+                                loadedCount++;
+                            }
+                        }
+                        
+                        // 🐥🐥🐥🐥🐥 70% 이상의 이미지가 로드되면 완료로 간주 (속도 우선)
+                        return totalCount > 0 && (loadedCount / totalCount) >= 0.7;
+                    }
+                """, timeout=10000)
+                print(f"🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 완료")
+            except:
+                print(f"🐥🐥🐥🐥🐥 디버깅: 이미지 로딩 대기 실패")
         else:
-            # 🐥🐥🐥🐥🐥 첫 페이지는 대기 없음
+            # 🐥🐥🐥🐥🐥 첫 페이지는 조건부 대기만으로 충분
             pass
         
         # 🐥🐥🐥🐥🐥 최종 상품 개수 확인
@@ -339,7 +288,6 @@ async def 상품정보파싱(요청: 웹페이지요청):
         print(f"🐥🐥🐥🐥🐥 디버깅: 최종 상품 수: {최종상품수}개")
         
         # 🐥🐥🐥🐥🐥 상품 정보 추출 (즉시 실행)
-        print(f"🐥🐥🐥🐥🐥 디버깅: 상품 정보 추출 시작")
         상품목록 = await page.evaluate("""
             () => {
                 const products = [];
@@ -359,88 +307,9 @@ async def 상품정보파싱(요청: 웹페이지요청):
                     try {
                         // 🐥🐥🐥🐥🐥 상품 이미지 (최적화)
                         let imgElement = element.querySelector('.prod-img img');
-                        if (!imgElement) {
-                            console.log('🐥🐥🐥🐥🐥 디버깅: .prod-img img 찾기 실패');
-                            imgElement = element.querySelector('.product-img img');
-                        }
-                        if (!imgElement) {
-                            console.log('🐥🐥🐥🐥🐥 디버깅: .product-img img 찾기 실패');
-                            imgElement = element.querySelector('img');
-                        }
-                        if (!imgElement) {
-                            console.log('🐥🐥🐥🐥🐥 디버깅: img 찾기 실패');
-                        } else {
-                            console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 찾기 성공', { src: imgElement.src });
-                        }
+                        if (!imgElement) imgElement = element.querySelector('.product-img img');
+                        if (!imgElement) imgElement = element.querySelector('img');
                         const 이미지URL = imgElement ? imgElement.src : '';
-                        
-                        // 🐥🐥🐥🐥🐥 이미지를 base64로 변환 (CORS 문제 해결)
-                        let 이미지Base64 = '';
-                        console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 확인', {
-                            imgElement: !!imgElement,
-                            src: imgElement ? imgElement.src : '없음',
-                            complete: imgElement ? imgElement.complete : '없음',
-                            naturalHeight: imgElement ? imgElement.naturalHeight : '없음',
-                            naturalWidth: imgElement ? imgElement.naturalWidth : '없음'
-                        });
-                        
-                        // 🐥🐥🐥🐥🐥 이미지를 base64로 변환 (CORS 문제 해결)
-                        let 이미지Base64 = '';
-                        console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 확인', {
-                            imgElement: !!imgElement,
-                            src: imgElement ? imgElement.src : '없음',
-                            complete: imgElement ? imgElement.complete : '없음',
-                            naturalHeight: imgElement ? imgElement.naturalHeight : '없음',
-                            naturalWidth: imgElement ? imgElement.naturalWidth : '없음'
-                        });
-                        
-                        // 🐥🐥🐥🐥🐥 이미지 변환 시도 (간단한 방법)
-                        if (imgElement && imgElement.src) {
-                            try {
-                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 시도');
-                                
-                                // 🐥🐥🐥🐥🐥 이미지가 로딩되지 않았다면 강제로 로딩
-                                if (!imgElement.complete || imgElement.naturalHeight === 0) {
-                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 로딩되지 않음, 강제 로딩 시도');
-                                    
-                                    // 🐥🐥🐥🐥🐥 이미지 src를 다시 설정하여 강제 로딩
-                                    const originalSrc = imgElement.src;
-                                    imgElement.src = '';
-                                    imgElement.src = originalSrc;
-                                    
-                                    // 🐥🐥🐥🐥🐥 잠시 대기 후 다시 확인
-                                    setTimeout(() => {
-                                        if (imgElement.complete && imgElement.naturalHeight > 0) {
-                                            console.log('🐥🐥🐥🐥🐥 디버깅: 강제 로딩 성공');
-                                        } else {
-                                            console.log('🐥🐥🐥🐥🐥 디버깅: 강제 로딩 실패');
-                                        }
-                                    }, 100);
-                                }
-                                
-                                // 🐥🐥🐥🐥🐥 이미지 변환 시도
-                                if (imgElement.complete && imgElement.naturalHeight > 0) {
-                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 실행', {
-                                        width: imgElement.naturalWidth,
-                                        height: imgElement.naturalHeight
-                                    });
-                                    
-                                    const canvas = document.createElement('canvas');
-                                    const ctx = canvas.getContext('2d');
-                                    canvas.width = imgElement.naturalWidth;
-                                    canvas.height = imgElement.naturalHeight;
-                                    ctx.drawImage(imgElement, 0, 0);
-                                    이미지Base64 = canvas.toDataURL('image/jpeg', 0.7);
-                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 성공', { base64Length: 이미지Base64.length });
-                                } else {
-                                    console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 조건 불충족');
-                                }
-                            } catch (e) {
-                                console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 변환 실패:', e);
-                            }
-                        } else {
-                            console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 또는 src 없음');
-                        }
                         
                         // 🐥🐥🐥🐥🐥 상품 제목
                         let titleElement = element.querySelector('.product-title');
@@ -471,15 +340,8 @@ async def 상품정보파싱(요청: 웹페이지요청):
                         
                         // 🐥🐥🐥🐥🐥 최소한의 정보가 있는 경우만 추가
                         if (제목 || 이미지URL) {
-                            console.log('🐥🐥🐥🐥🐥 디버깅: 상품 추가', {
-                                index: index + 1,
-                                제목: 제목 || `상품 ${index + 1}`,
-                                이미지URL: 이미지URL,
-                                이미지Base64길이: 이미지Base64 ? 이미지Base64.length : 0
-                            });
                             products.push({
                                 이미지URL,
-                                이미지Base64,  // 🐥🐥🐥🐥🐥 base64 이미지 추가
                                 제목: 제목 || `상품 ${index + 1}`,
                                 가격: 가격 || '',
                                 한국어가격: 한국어가격 || '',
@@ -498,14 +360,6 @@ async def 상품정보파싱(요청: 웹페이지요청):
         """)
         
         print(f"🐥🐥🐥🐥🐥 디버깅: 파싱 완료 - 상품 {len(상품목록)}개 추출")
-        
-        # 🐥🐥🐥🐥🐥 상품별 이미지 정보 디버깅
-        for i, 상품 in enumerate(상품목록[:3]):  # 처음 3개만 확인
-            print(f"🐥🐥🐥🐥🐥 디버깅: 상품 {i+1} 이미지 정보", {
-                '제목': 상품.get('제목', '없음'),
-                '이미지URL': 상품.get('이미지URL', '없음'),
-                '이미지Base64길이': len(상품.get('이미지Base64', ''))
-            })
         
         # 🐥🐥🐥🐥🐥 브라우저는 닫지 않음 (재사용을 위해)
         # await browser.close()
@@ -531,32 +385,9 @@ async def 상품이미지추출(요청: 상품이미지요청):
             print(f"🐥🐥🐥🐥🐥 새 사용자 {요청.사용자ID} 브라우저 생성")
             try:
                 playwright = await async_playwright().start()
-                
-                # 🐥🐥🐥🐥🐥 Render 환경에서 필요한 브라우저 옵션
-                browser_args = [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--single-process',
-                    '--disable-extensions'
-                ]
-                
-                if is_render_environment():
-                    print("🐥🐥🐥🐥🐥 Render 환경에서 브라우저 실행")
-                    browser_args.extend([
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        '--disable-features=TranslateUI',
-                        '--disable-ipc-flooding-protection'
-                    ])
-                
                 browser = await playwright.chromium.launch(
-                    headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
-                    args=browser_args
+                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
+                    args=['--no-sandbox', '--disable-setuid-sandbox']
                 )
                 page = await browser.new_page()
                 
@@ -912,8 +743,4 @@ async def 상품이미지추출(요청: 상품이미지요청):
 
 if __name__ == "__main__":
     import uvicorn
-    import os
-    
-    # 🐥🐥🐥🐥🐥 Render 환경에서는 포트를 환경변수에서 가져오기
-    port = int(os.getenv("PORT", 8001))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
