@@ -64,6 +64,46 @@ async def 상품정보파싱(요청: 웹페이지요청):
             try:
                 playwright = await async_playwright().start()
                 
+                # 🐥🐥🐥🐥🐥 설치된 브라우저 경로 확인
+                import os
+                playwright_cache_dir = os.path.expanduser("~/.cache/ms-playwright")
+                render_cache_dir = "/opt/render/.cache/ms-playwright"
+                
+                print(f"🐥🐥🐥🐥🐥 Playwright 캐시 디렉토리 확인:")
+                print(f"🐥🐥🐥🐥🐥 사용자 캐시: {playwright_cache_dir}")
+                print(f"🐥🐥🐥🐥🐥 Render 캐시: {render_cache_dir}")
+                
+                # 🐥🐥🐥🐥🐥 실제 설치된 브라우저 경로 확인
+                if os.path.exists(render_cache_dir):
+                    print(f"🐥🐥🐥🐥🐥 Render 캐시 디렉토리 존재: {render_cache_dir}")
+                    for item in os.listdir(render_cache_dir):
+                        item_path = os.path.join(render_cache_dir, item)
+                        if os.path.isdir(item_path):
+                            print(f"🐥🐥🐥🐥🐥 브라우저 디렉토리: {item}")
+                            # 🐥🐥🐥🐥🐥 하위 디렉토리 확인
+                            try:
+                                for subitem in os.listdir(item_path):
+                                    subitem_path = os.path.join(item_path, subitem)
+                                    if os.path.isdir(subitem_path):
+                                        print(f"🐥🐥🐥🐥🐥   - {subitem}/")
+                                        # 🐥🐥🐥🐥🐥 실행 파일 찾기
+                                        try:
+                                            for file in os.listdir(subitem_path):
+                                                if file in ['chrome', 'firefox', 'webkit']:
+                                                    full_path = os.path.join(subitem_path, file)
+                                                    print(f"🐥🐥🐥🐥🐥     실행 파일: {full_path}")
+                                        except:
+                                            pass
+                            except:
+                                pass
+                else:
+                    print(f"🐥🐥🐥🐥🐥 Render 캐시 디렉토리 없음: {render_cache_dir}")
+                
+                if os.path.exists(playwright_cache_dir):
+                    print(f"🐥🐥🐥🐥🐥 사용자 캐시 디렉토리 존재: {playwright_cache_dir}")
+                else:
+                    print(f"🐥🐥🐥🐥🐥 사용자 캐시 디렉토리 없음: {playwright_cache_dir}")
+                
                 # 🐥🐥🐥🐥🐥 첫 번째 시도: 기본 설정으로 브라우저 실행
                 try:
                     browser = await playwright.chromium.launch(
