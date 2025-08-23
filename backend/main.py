@@ -63,80 +63,21 @@ async def 상품정보파싱(요청: 웹페이지요청):
             print(f"🐥🐥🐥🐥🐥 디버깅: 새 사용자 {user_id} 브라우저 생성")
             try:
                 playwright = await async_playwright().start()
-                
-                # 🐥🐥🐥🐥🐥 설치된 브라우저 경로 확인
-                import os
-                playwright_cache_dir = os.path.expanduser("~/.cache/ms-playwright")
-                render_cache_dir = "/opt/render/.cache/ms-playwright"
-                
-                print(f"🐥🐥🐥🐥🐥 Playwright 캐시 디렉토리 확인:")
-                print(f"🐥🐥🐥🐥🐥 사용자 캐시: {playwright_cache_dir}")
-                print(f"🐥🐥🐥🐥🐥 Render 캐시: {render_cache_dir}")
-                
-                # 🐥🐥🐥🐥🐥 실제 설치된 브라우저 경로 확인
-                if os.path.exists(render_cache_dir):
-                    print(f"🐥🐥🐥🐥🐥 Render 캐시 디렉토리 존재: {render_cache_dir}")
-                    for item in os.listdir(render_cache_dir):
-                        item_path = os.path.join(render_cache_dir, item)
-                        if os.path.isdir(item_path):
-                            print(f"🐥🐥🐥🐥🐥 브라우저 디렉토리: {item}")
-                            # 🐥🐥🐥🐥🐥 하위 디렉토리 확인
-                            try:
-                                for subitem in os.listdir(item_path):
-                                    subitem_path = os.path.join(item_path, subitem)
-                                    if os.path.isdir(subitem_path):
-                                        print(f"🐥🐥🐥🐥🐥   - {subitem}/")
-                                        # 🐥🐥🐥🐥🐥 실행 파일 찾기
-                                        try:
-                                            for file in os.listdir(subitem_path):
-                                                if file in ['chrome', 'firefox', 'webkit']:
-                                                    full_path = os.path.join(subitem_path, file)
-                                                    print(f"🐥🐥🐥🐥🐥     실행 파일: {full_path}")
-                                        except:
-                                            pass
-                            except:
-                                pass
-                else:
-                    print(f"🐥🐥🐥🐥🐥 Render 캐시 디렉토리 없음: {render_cache_dir}")
-                
-                if os.path.exists(playwright_cache_dir):
-                    print(f"🐥🐥🐥🐥🐥 사용자 캐시 디렉토리 존재: {playwright_cache_dir}")
-                else:
-                    print(f"🐥🐥🐥🐥🐥 사용자 캐시 디렉토리 없음: {playwright_cache_dir}")
-                
-                # 🐥🐥🐥🐥🐥 첫 번째 시도: 기본 설정으로 브라우저 실행
-                try:
-                    browser = await playwright.chromium.launch(
-                        headless=True,
-                        args=[
-                            '--no-sandbox',
-                            '--disable-dev-shm-usage',
-                            '--disable-gpu',
-                            '--disable-software-rasterizer',
-                            '--disable-extensions',
-                            '--disable-background-timer-throttling',
-                            '--disable-backgrounding-occluded-windows',
-                            '--disable-renderer-backgrounding',
-                            '--disable-features=TranslateUI',
-                            '--disable-ipc-flooding-protection'
-                        ]
-                    )
-                except Exception as e1:
-                    print(f"🐥🐥🐥🐥🐥 첫 번째 브라우저 실행 실패: {str(e1)}")
-                    # 🐥🐥🐥🐥🐥 두 번째 시도: 최소 설정으로 브라우저 실행
-                    try:
-                        browser = await playwright.chromium.launch(
-                            headless=True,
-                            args=['--no-sandbox', '--disable-dev-shm-usage']
-                        )
-                    except Exception as e2:
-                        print(f"🐥🐥🐥🐥🐥 두 번째 브라우저 실행 실패: {str(e2)}")
-                        # 🐥🐥🐥🐥🐥 세 번째 시도: Firefox 사용
-                        browser = await playwright.firefox.launch(
-                            headless=True,
-                            args=['--no-sandbox']
-                        )
-                
+                browser = await playwright.chromium.launch(
+                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
+                    args=[
+                        '--no-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-gpu',
+                        '--disable-software-rasterizer',
+                        '--disable-extensions',
+                        '--disable-background-timer-throttling',
+                        '--disable-backgrounding-occluded-windows',
+                        '--disable-renderer-backgrounding',
+                        '--disable-features=TranslateUI',
+                        '--disable-ipc-flooding-protection'
+                    ]
+                )
                 page = await browser.new_page()
                 user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
             except Exception as e:
@@ -326,40 +267,21 @@ async def 상품이미지추출(요청: 상품이미지요청):
             print(f"🐥🐥🐥🐥🐥 새 사용자 {요청.사용자ID} 브라우저 생성")
             try:
                 playwright = await async_playwright().start()
-                
-                # 🐥🐥🐥🐥🐥 첫 번째 시도: 기본 설정으로 브라우저 실행
-                try:
-                    browser = await playwright.chromium.launch(
-                        headless=True,
-                        args=[
-                            '--no-sandbox',
-                            '--disable-setuid-sandbox',
-                            '--disable-gpu',
-                            '--disable-software-rasterizer',
-                            '--disable-extensions',
-                            '--disable-background-timer-throttling',
-                            '--disable-backgrounding-occluded-windows',
-                            '--disable-renderer-backgrounding',
-                            '--disable-features=TranslateUI',
-                            '--disable-ipc-flooding-protection'
-                        ]
-                    )
-                except Exception as e1:
-                    print(f"🐥🐥🐥🐥🐥 첫 번째 브라우저 실행 실패: {str(e1)}")
-                    # 🐥🐥🐥🐥🐥 두 번째 시도: 최소 설정으로 브라우저 실행
-                    try:
-                        browser = await playwright.chromium.launch(
-                            headless=True,
-                            args=['--no-sandbox', '--disable-setuid-sandbox']
-                        )
-                    except Exception as e2:
-                        print(f"🐥🐥🐥🐥🐥 두 번째 브라우저 실행 실패: {str(e2)}")
-                        # 🐥🐥🐥🐥🐥 세 번째 시도: Firefox 사용
-                        browser = await playwright.firefox.launch(
-                            headless=True,
-                            args=['--no-sandbox']
-                        )
-                
+                browser = await playwright.chromium.launch(
+                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
+                    args=[
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-gpu',
+                        '--disable-software-rasterizer',
+                        '--disable-extensions',
+                        '--disable-background-timer-throttling',
+                        '--disable-backgrounding-occluded-windows',
+                        '--disable-renderer-backgrounding',
+                        '--disable-features=TranslateUI',
+                        '--disable-ipc-flooding-protection'
+                    ]
+                )
                 page = await browser.new_page()
                 
                 # 🐥🐥🐥🐥🐥 사용자별 브라우저 저장
