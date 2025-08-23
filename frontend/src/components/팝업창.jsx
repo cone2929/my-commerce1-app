@@ -492,6 +492,17 @@ const 팝업창 = ({
             const data = await response.json();
             
             if (data.success) {
+                // 🐥🐥🐥🐥🐥 검색 결과에서 상품 썸네일 이미지 URL 로그 출력
+                console.log('🐥🐥🐥🐥🐥 검색 결과 상품 목록:', data.products);
+                data.products.forEach((상품, 인덱스) => {
+                    console.log(`🐥🐥🐥🐥🐥 상품 ${인덱스 + 1} 썸네일 이미지 URL:`, {
+                        제목: 상품.제목,
+                        이미지URL: 상품.이미지URL,
+                        가격: 상품.가격,
+                        한국어가격: 상품.한국어가격
+                    });
+                });
+                
                 if (페이지 === 1) {
                     set상품목록(data.products);
                     set검색실행이_완료되었는지(true);
@@ -502,6 +513,18 @@ const 팝업창 = ({
                         const 새로운상품들 = data.products.filter(item => 
                             !기존상품들.includes(item.제목 + item.이미지URL)
                         );
+                        
+                        // 🐥🐥🐥🐥🐥 더보기에서 추가된 상품들의 썸네일 이미지 URL 로그 출력
+                        console.log('🐥🐥🐥🐥🐥 더보기 추가 상품들:', 새로운상품들);
+                        새로운상품들.forEach((상품, 인덱스) => {
+                            console.log(`🐥🐥🐥🐥🐥 더보기 상품 ${인덱스 + 1} 썸네일 이미지 URL:`, {
+                                제목: 상품.제목,
+                                이미지URL: 상품.이미지URL,
+                                가격: 상품.가격,
+                                한국어가격: 상품.한국어가격
+                            });
+                        });
+                        
                         return [...prev, ...새로운상품들];
                     });
                 }
@@ -699,7 +722,16 @@ const 팝업창 = ({
                                          {/* 🐥🐥🐥🐥🐥 상품 목록 */}
                      {상품목록.length > 0 && (
                          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                             {상품목록.map((상품, index) => (
+                             {상품목록.map((상품, index) => {
+                                 // 🐥🐥🐥🐥🐥 렌더링 시점에 상품 썸네일 이미지 URL 로그 출력
+                                 console.log(`🐥🐥🐥🐥🐥 렌더링 상품 ${index + 1}:`, {
+                                     제목: 상품.제목,
+                                     이미지URL: 상품.이미지URL,
+                                     가격: 상품.가격,
+                                     한국어가격: 상품.한국어가격
+                                 });
+                                 
+                                 return (
                                  <div key={index} className="product-item bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200 relative group cursor-pointer" onClick={() => 개별상품선택처리(index, !선택된상품들.has(index))}>
                                      {/* 🐥🐥🐥🐥🐥 체크박스 - 우측상단에 배치 */}
                                      <div className="absolute top-2 right-2 z-10">
@@ -760,7 +792,8 @@ const 팝업창 = ({
                                          )}
                                      </div>
                                  </div>
-                             ))}
+                             );
+                             })}
                              
                              {/* 🐥🐥🐥🐥🐥 더보기 로딩 */}
                              {더보기로딩 && (
