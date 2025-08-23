@@ -64,19 +64,8 @@ async def 상품정보파싱(요청: 웹페이지요청):
             try:
                 playwright = await async_playwright().start()
                 browser = await playwright.chromium.launch(
-                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
-                    args=[
-                        '--no-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-gpu',
-                        '--disable-software-rasterizer',
-                        '--disable-extensions',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        '--disable-features=TranslateUI',
-                        '--disable-ipc-flooding-protection'
-                    ]
+                    headless=True,
+                    args=['--no-sandbox', '--disable-dev-shm-usage']
                 )
                 page = await browser.new_page()
                 user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
@@ -268,19 +257,8 @@ async def 상품이미지추출(요청: 상품이미지요청):
             try:
                 playwright = await async_playwright().start()
                 browser = await playwright.chromium.launch(
-                    headless=True,  # 🐥🐥🐥🐥🐥 헤드리스 모드로 변경
-                    args=[
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-gpu',
-                        '--disable-software-rasterizer',
-                        '--disable-extensions',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        '--disable-features=TranslateUI',
-                        '--disable-ipc-flooding-protection'
-                    ]
+                    headless=True,
+                    args=['--no-sandbox', '--disable-setuid-sandbox']
                 )
                 page = await browser.new_page()
                 
