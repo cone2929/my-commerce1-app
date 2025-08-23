@@ -19,6 +19,19 @@ from playwright.async_api import async_playwright
 import platform
 import subprocess
 import sys
+import asyncio
+
+# 🐥🐥🐥🐥🐥 Windows 환경에서 asyncio 이벤트 루프 정책 설정
+if platform.system() == "Windows":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception as e:
+        print(f"🐥🐥🐥🐥🐥 Windows 이벤트 루프 정책 설정 실패: {e}")
+        # 🐥🐥🐥🐥🐥 대안: WindowsSelectorEventLoopPolicy 사용
+        try:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except Exception as e2:
+            print(f"🐥🐥🐥🐥🐥 대안 이벤트 루프 정책도 실패: {e2}")
 
 # 🐥🐥🐥🐥🐥 사용자별 브라우저 관리
 user_browsers = {}
@@ -42,6 +55,54 @@ def install_playwright_browsers():
             print("🐥🐥🐥🐥🐥 Playwright 브라우저 설치 완료!")
     except Exception as e:
         print(f"🐥🐥🐥🐥🐥 Playwright 브라우저 설치 실패: {e}")
+
+# 🐥🐥🐥🐥🐥 Windows 환경에서 브라우저 생성 시 예외 처리 강화
+async def create_browser_safely():
+    """안전한 브라우저 생성 함수"""
+    try:
+        # 🐥🐥🐥🐥🐥 Windows 환경에서 추가 설정
+        if platform.system() == "Windows":
+            # Windows에서 Playwright 실행 전 환경 설정
+            import os
+            # 🐥🐥🐥🐥🐥 올바른 브라우저 경로 설정
+            os.environ['PLAYWRIGHT_BROWSERS_PATH'] = os.path.expanduser('~/AppData/Local/ms-playwright')
+            os.environ['PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD'] = '0'
+            
+        playwright = await async_playwright().start()
+        
+        # 🐥🐥🐥🐥🐥 브라우저 옵션 설정 (단순화)
+        browser_args = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run',
+            '--disable-extensions',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding'
+        ]
+        
+        # 🐥🐥🐥🐥🐥 브라우저 실행 (단순한 설정)
+        browser = await playwright.chromium.launch(
+            headless=True,  # 🐥🐥🐥🐥🐥 항상 헤드리스 모드 사용
+            args=browser_args,
+            timeout=120000
+        )
+        
+        # 🐥🐥🐥🐥🐥 페이지 생성 전 잠시 대기
+        await asyncio.sleep(1)
+        
+        page = await browser.new_page()
+        
+        # 🐥🐥🐥🐥🐥 페이지가 정상적으로 생성되었는지 확인
+        await page.goto('about:blank')
+        
+        return {'browser': browser, 'page': page, 'playwright': playwright}
+        
+    except Exception as e:
+        print(f"🐥🐥🐥🐥🐥 브라우저 생성 실패: {str(e)}")
+        raise e
 
 # 🐥🐥🐥🐥🐥 앱 시작 시 브라우저 설치 (재배포 트리거)
 install_playwright_browsers()
@@ -215,41 +276,23 @@ async def 상품정보파싱(요청: 웹페이지요청):
             print(f"🐥🐥🐥🐥🐥 디버깅: 새 사용자 {user_id} 브라우저 생성")
             print(f"🐥🐥🐥🐥🐥 디버깅: 현재 브라우저 수: {len(user_browsers)}개")
             try:
-                playwright = await async_playwright().start()
-                
-                # 🐥🐥🐥🐥🐥 Render 환경에서는 헤드리스 모드 필수
-                browser_args = ['--no-sandbox', '--disable-dev-shm-usage']
-                if is_render_environment():
-                    browser_args.extend([
-                        '--disable-gpu', 
-                        '--disable-software-rasterizer',
-                        '--disable-web-security',
-                        '--disable-features=VizDisplayCompositor',
-                        '--disable-extensions',
-                        '--disable-plugins',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding'
-                    ])
-                
-                browser = await playwright.chromium.launch(
-                    headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
-                    args=browser_args,
-                    timeout=120000  # 🐥🐥🐥🐥🐥 브라우저 시작 타임아웃 늘리기
-                )
-                page = await browser.new_page()
+                # 🐥🐥🐥🐥🐥 안전한 브라우저 생성 함수 사용
+                browser_info = await create_browser_safely()
+                user_browsers[user_id] = browser_info
                 print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 및 페이지 생성 완료")
-                user_browsers[user_id] = {'browser': browser, 'page': page, 'playwright': playwright}
             except Exception as e:
                 print(f"🐥🐥🐥🐥🐥 브라우저 생성 실패: {str(e)}")
                 # 🐥🐥🐥🐥🐥 실패 시 기본 응답 반환
                 return {"products": [], "success": False, "error": f"브라우저 생성 실패: {str(e)}"}
-        else:
+        
+        # 🐥🐥🐥🐥🐥 브라우저와 페이지 변수 할당 (새 사용자와 기존 사용자 모두)
+        browser = user_browsers[user_id]['browser']
+        page = user_browsers[user_id]['page']
+        
+        if user_id in user_browsers and len(user_browsers) > 1:
             # 🐥🐥🐥🐥🐥 기존 사용자: 브라우저 재사용
             print(f"🐥🐥🐥🐥🐥 디버깅: 기존 사용자 {user_id} 브라우저 재사용")
             print(f"🐥🐥🐥🐥🐥 디버깅: 현재 브라우저 수: {len(user_browsers)}개")
-            browser = user_browsers[user_id]['browser']
-            page = user_browsers[user_id]['page']
             
             # 🐥🐥🐥🐥🐥 브라우저 상태 확인 (수정된 방법)
             try:
@@ -265,15 +308,42 @@ async def 상품정보파싱(요청: 웹페이지요청):
         # 🐥🐥🐥🐥🐥 디버깅: 요청 정보 출력
         print(f"🐥🐥🐥🐥🐥 디버깅: 사용자 {user_id}, 페이지 {요청.page} 요청 시작")
         
-        # 🐥🐥🐥🐥🐥 페이지 로드 (타임아웃 증가)
+        # 🐥🐥🐥🐥🐥 페이지 로드 (타임아웃 증가 및 브라우저 상태 확인)
         print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 시작 - {요청.url}")
         try:
             await page.goto(요청.url, wait_until='domcontentloaded', timeout=60000)  # 60초로 증가
             print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 완료")
         except Exception as e:
             print(f"🐥🐥🐥🐥🐥 디버깅: 페이지 로드 실패: {e}")
-            # 🐥🐥🐥🐥🐥 실패 시에도 계속 진행
-            pass
+            # 🐥🐥🐥🐥🐥 브라우저가 닫혔다면 새로 생성
+            if "closed" in str(e).lower():
+                print(f"🐥🐥🐥🐥🐥 디버깅: 브라우저 닫힘 감지, 새로 생성")
+                try:
+                    # 🐥🐥🐥🐥🐥 기존 브라우저 정리
+                    if user_id in user_browsers:
+                        try:
+                            old_browser = user_browsers[user_id]['browser']
+                            if not old_browser.is_closed():
+                                await old_browser.close()
+                        except:
+                            pass
+                        del user_browsers[user_id]
+                    
+                    # 🐥🐥🐥🐥🐥 새 브라우저 생성
+                    browser_info = await create_browser_safely()
+                    user_browsers[user_id] = browser_info
+                    browser = browser_info['browser']
+                    page = browser_info['page']
+                    
+                    # 🐥🐥🐥🐥🐥 다시 페이지 로드 시도
+                    await page.goto(요청.url, wait_until='domcontentloaded', timeout=60000)
+                    print(f"🐥🐥🐥🐥🐥 디버깅: 재시도 후 페이지 로드 완료")
+                except Exception as e2:
+                    print(f"🐥🐥🐥🐥🐥 디버깅: 재시도도 실패: {e2}")
+                    return {"products": [], "success": False, "error": f"페이지 로드 실패: {str(e2)}"}
+            else:
+                # 🐥🐥🐥🐥🐥 다른 오류는 계속 진행
+                pass
         
         # 🐥🐥🐥🐥🐥 상품 요소 대기 (안정성 우선)
         print(f"🐥🐥🐥🐥🐥 디버깅: 상품 요소 대기 시작")
@@ -528,42 +598,9 @@ async def 상품이미지추출(요청: 상품이미지요청):
         if 요청.사용자ID not in user_browsers:
             print(f"🐥🐥🐥🐥🐥 새 사용자 {요청.사용자ID} 브라우저 생성")
             try:
-                playwright = await async_playwright().start()
-                
-                # 🐥🐥🐥🐥🐥 Render 환경에서 필요한 브라우저 옵션
-                browser_args = [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--single-process',
-                    '--disable-extensions'
-                ]
-                
-                if is_render_environment():
-                    print("🐥🐥🐥🐥🐥 Render 환경에서 브라우저 실행")
-                    browser_args.extend([
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        '--disable-features=TranslateUI',
-                        '--disable-ipc-flooding-protection'
-                    ])
-                
-                browser = await playwright.chromium.launch(
-                    headless=is_render_environment(),  # 🐥🐥🐥🐥🐥 Render에서는 헤드리스 필수
-                    args=browser_args
-                )
-                page = await browser.new_page()
-                
-                # 🐥🐥🐥🐥🐥 사용자별 브라우저 저장
-                user_browsers[요청.사용자ID] = {
-                    'browser': browser,
-                    'page': page,
-                    'playwright': playwright
-                }
+                # 🐥🐥🐥🐥🐥 안전한 브라우저 생성 함수 사용
+                browser_info = await create_browser_safely()
+                user_browsers[요청.사용자ID] = browser_info
             except Exception as e:
                 print(f"🐥🐥🐥🐥🐥 브라우저 생성 실패: {str(e)}")
                 return {"success": False, "error": "브라우저 생성 실패"}
@@ -911,6 +948,24 @@ async def 상품이미지추출(요청: 상품이미지요청):
 if __name__ == "__main__":
     import uvicorn
     import os
+    
+    # 🐥🐥🐥🐥🐥 Windows 환경에서 추가 설정
+    if platform.system() == "Windows":
+        # Windows에서 asyncio 관련 설정
+        try:
+            import nest_asyncio
+            nest_asyncio.apply()
+            print("🐥🐥🐥🐥🐥 nest_asyncio 적용 완료")
+        except ImportError:
+            print("🐥🐥🐥🐥🐥 nest_asyncio가 설치되지 않았습니다. pip install nest-asyncio로 설치하세요.")
+        except Exception as e:
+            print(f"🐥🐥🐥🐥🐥 nest_asyncio 적용 실패: {e}")
+        
+        # 🐥🐥🐥🐥🐥 Windows에서 Playwright 환경 설정
+        import os
+        # 🐥🐥🐥🐥🐥 올바른 브라우저 경로 설정
+        os.environ['PLAYWRIGHT_BROWSERS_PATH'] = os.path.expanduser('~/AppData/Local/ms-playwright')
+        os.environ['PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD'] = '0'
     
     # 🐥🐥🐥🐥🐥 Render 환경에서는 포트를 환경변수에서 가져오기
     port = int(os.getenv("PORT", 8001))
