@@ -392,16 +392,6 @@ async def 상품정보파싱(요청: 웹페이지요청):
                             naturalWidth: imgElement ? imgElement.naturalWidth : '없음'
                         });
                         
-                        // 🐥🐥🐥🐥🐥 이미지를 base64로 변환 (CORS 문제 해결)
-                        let 이미지Base64 = '';
-                        console.log('🐥🐥🐥🐥🐥 디버깅: 이미지 요소 확인', {
-                            imgElement: !!imgElement,
-                            src: imgElement ? imgElement.src : '없음',
-                            complete: imgElement ? imgElement.complete : '없음',
-                            naturalHeight: imgElement ? imgElement.naturalHeight : '없음',
-                            naturalWidth: imgElement ? imgElement.naturalWidth : '없음'
-                        });
-                        
                         // 🐥🐥🐥🐥🐥 이미지 변환 시도 (간단한 방법)
                         if (imgElement && imgElement.src) {
                             try {
