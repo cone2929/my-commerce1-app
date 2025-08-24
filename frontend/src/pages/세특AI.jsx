@@ -55,9 +55,7 @@ const 세특AI = () => {
 
     // 활동 전용 AI 결과 가져오기 함수 (기존 방식 유지)
     const 활동AI결과가져오기 = async (인덱스, 활동내용) => {
-        const API_BASE_URL = process.env.NODE_ENV === 'production'
-            ? 'https://my-commerce-app.onrender.com'
-            : 'http://localhost:8001';
+        const API_BASE_URL = 'http://localhost:8001';
 
         if (!활동내용.trim() || 활동내용 === '내용을 입력해주세요.') {
             return;
@@ -100,9 +98,7 @@ const 세특AI = () => {
 
     // 수정사항 전용 AI 결과 가져오기 함수 (AI결과 + 수정사항 합쳐서 전달)
     const 수정사항AI결과가져오기 = async (인덱스, 수정사항내용) => {
-        const API_BASE_URL = process.env.NODE_ENV === 'production'
-            ? 'https://my-commerce-app.onrender.com'
-            : 'http://localhost:8001';
+        const API_BASE_URL = 'http://localhost:8001';
 
         if (!수정사항내용.trim() || 수정사항내용 === '내용을 입력해주세요.') {
             return;

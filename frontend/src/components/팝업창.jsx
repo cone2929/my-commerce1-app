@@ -26,8 +26,15 @@ const 팝업창 = ({
     const [전체선택, set전체선택] = useState(false);
     const [선택된상품들, set선택된상품들] = useState(new Set());
     
-    // 🐥🐥🐥🐥🐥 상품 추가 로딩 상태
-    const [상품추가로딩, set상품추가로딩] = useState(false);
+    // 🐥🐥🐥🐥🐥 이미지 추출 로딩 상태 추가
+    const [이미지추출로딩, set이미지추출로딩] = useState(false);
+    
+    // 🐥🐥🐥🐥🐥 진행 상황 표시 상태 추가
+    const [진행상황, set진행상황] = useState({
+        현재: 0,
+        전체: 0,
+        메시지: ''
+    });
     
     // 🐥🐥🐥🐥🐥 팝업 내용 영역 ref
     const 팝업내용Ref = useRef(null);
@@ -87,8 +94,8 @@ const 팝업창 = ({
         return 변환된상품들;
     };
     
-    // 🐥🐥🐥🐥🐥 선택된 상품들을 처리하는 함수
-    const 선택된상품처리 = () => {
+    // 🐥🐥🐥🐥🐥 선택된 상품들을 순서대로 처리하는 함수
+    const 순서별상품처리 = async () => {
         if (선택된상품들.size === 0) {
             alert('추가할 상품을 선택해주세요.');
             return;
@@ -103,22 +110,172 @@ const 팝업창 = ({
             return;
         }
         
-        // 🐥🐥🐥🐥🐥 상품 정보 변환
-        const 처리된상품들 = 선택된상품들배열.map(상품 => 상품정보변환(상품));
+        // 🐥🐥🐥🐥🐥 진행 상황 초기화
+        set진행상황({
+            현재: 0,
+            전체: 선택된상품들배열.length,
+            메시지: '상품 처리 준비 중...'
+        });
         
-        // 🐥🐥🐥🐥🐥 처리된 상품들을 상품관리 페이지에 추가
-        if (처리된상품들.length > 0) {
-            if (선택된상품추가콜백) {
-                선택된상품추가콜백(처리된상품들);
+        // 🐥🐥🐥🐥🐥 순서대로 상품 처리
+        const 처리된상품들 = [];
+        
+        for (let i = 0; i < 선택된상품들배열.length; i++) {
+            const 현재상품 = 선택된상품들배열[i];
+            
+            // 🐥🐥🐥🐥🐥 진행 상황 업데이트
+            set진행상황({
+                현재: i + 1,
+                전체: 선택된상품들배열.length,
+                메시지: `"${현재상품.제목}" 상세페이지 이동 중...`
+            });
+            
+            try {
+                // 🐥🐥🐥🐥🐥 현재 상품에 대한 이미지 추출
+                                    set진행상황(prev => ({
+                        ...prev,
+                        메시지: `"${현재상품.제목}" 가져오는 중...`
+                    }));
+                
+                const 이미지결과 = await 개별상품이미지추출(현재상품);
+                
+                if (이미지결과) {
+                    처리된상품들.push(이미지결과);
+                    set진행상황(prev => ({
+                        ...prev,
+                        메시지: `"${현재상품.제목}" 이미지 추출 완료 (${이미지결과.썸네일이미지들?.length || 0}개)`
+                    }));
+                }
+                
+                // 🐥🐥🐥🐥🐥 다음 상품 처리 전 잠시 대기 (서버 부하 방지)
+                if (i < 선택된상품들배열.length - 1) {
+                    set진행상황(prev => ({
+                        ...prev,
+                        메시지: '다음 상품 처리 준비 중...'
+                    }));
+                    await new Promise(resolve => setTimeout(resolve, 1000));  // 🐥🐥🐥🐥🐥 대기 시간 단축
+                }
+                
+            } catch (error) {
+                console.error(`상품 "${현재상품.제목}" 처리 중 오류:`, error);
+                // 🐥🐥🐥🐥🐥 오류가 발생해도 기본 정보로 상품 추가
+                const 기본상품 = 상품정보변환(현재상품);
+                처리된상품들.push(기본상품);
             }
         }
         
-        // 🐥🐥🐥🐥🐥 팝업창 완전 초기화 및 닫기
-        팝업창초기화();
-        닫기();
+        // 🐥🐥🐥🐥🐥 완료 메시지
+        set진행상황({
+            현재: 선택된상품들배열.length,
+            전체: 선택된상품들배열.length,
+            메시지: '상품 추가 완료!'
+        });
+        
+        // 🐥🐥🐥🐥🐥 잠시 후 처리된 상품들을 상품관리 페이지에 추가
+        setTimeout(() => {
+            if (처리된상품들.length > 0) {
+                if (선택된상품추가콜백) {
+                    선택된상품추가콜백(처리된상품들);
+                }
+            }
+            
+            // 🐥🐥🐥🐥🐥 팝업창 완전 초기화 및 닫기
+            팝업창초기화();
+            닫기();
+        }, 1000);
     };
     
+    // 🐥🐥🐥🐥🐥 개별 상품 이미지 추출 함수
+    const 개별상품이미지추출 = async (상품) => {
+        if (!상품.제목) {
+            return null;
+        }
+        
+        try {
+            const API_BASE_URL = 'http://localhost:8001';
+            
+            const response = await fetch(`${API_BASE_URL}/api/extract-product-images`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    상품명목록: [상품.제목], // 🐥🐥🐥🐥🐥 단일 상품만 전송
+                    사용자ID: 사용자ID || "anonymous"
+                })
+            });
+            
+            const data = await response.json();
+            
 
+            
+            if (data.success && data.결과 && data.결과.length > 0) {
+                const 결과 = data.결과[0];
+
+                
+                if (결과.성공 && (결과.이미지들 || 결과.상세이미지들)) {
+
+                    
+                    // 🐥🐥🐥🐥🐥 썸네일 이미지 필터링: data:로 시작하는 값과 중복값 제외
+                    const 필터된썸네일이미지들 = (결과.이미지들 || []).filter((이미지URL, 인덱스, 배열) => {
+                        // 🐥🐥🐥🐥🐥 data:로 시작하는 이미지 제외
+                        if (이미지URL.startsWith('data:')) {
+                            return false;
+                        }
+                        // 🐥🐥🐥🐥🐥 빈 문자열 제외
+                        if (!이미지URL || 이미지URL.trim() === '') {
+                            return false;
+                        }
+                        // 🐥🐥🐥🐥🐥 중복값 제외
+                        return 배열.indexOf(이미지URL) === 인덱스;
+                    });
+                    
+                    // 🐥🐥🐥🐥🐥 상세 이미지 필터링: data:로 시작하는 값과 중복값 제외
+                    const 필터된상세이미지들 = (결과.상세이미지들 || []).filter((이미지URL, 인덱스, 배열) => {
+                        // 🐥🐥🐥🐥🐥 data:로 시작하는 이미지 제외
+                        if (이미지URL.startsWith('data:')) {
+                            return false;
+                        }
+                        // 🐥🐥🐥🐥🐥 빈 문자열 제외
+                        if (!이미지URL || 이미지URL.trim() === '') {
+                            return false;
+                        }
+                        // 🐥🐥🐥🐥🐥 중복값 제외
+                        return 배열.indexOf(이미지URL) === 인덱스;
+                    });
+                    
+
+                    
+                    // 🐥🐥🐥🐥🐥 앞에서부터 5개만 사용
+                    const 최종썸네일이미지들 = 필터된썸네일이미지들.slice(0, 5);
+                    const 최종상세이미지들 = 필터된상세이미지들.slice(0, 5);
+                    
+
+                    
+                    // 🐥🐥🐥🐥🐥 상품 정보 변환
+                    const 변환된상품 = 상품정보변환(상품);
+                    변환된상품.썸네일이미지들 = 최종썸네일이미지들;
+                    변환된상품.상세이미지들 = 최종상세이미지들;
+                    
+
+                    return 변환된상품;
+                } else {
+
+                }
+            } else {
+
+            }
+            
+            // 🐥🐥🐥🐥🐥 이미지 추출 실패시 기본 정보로 반환
+            const 기본상품 = 상품정보변환(상품);
+
+            return 기본상품;
+            
+        } catch (error) {
+            console.error('이미지 추출 오류:', error);
+            return 상품정보변환(상품);
+        }
+    };
     
     // 🐥🐥🐥🐥🐥 상품 정보 변환 함수 (공통 로직)
     const 상품정보변환 = (원본상품) => {
@@ -175,6 +332,7 @@ const 팝업창 = ({
             상태: '판매중',
             등록일: new Date().toLocaleDateString('ko-KR'),
             설명: 원본상품.제목 || '상품 설명',
+            이미지: 원본상품.이미지URL || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300&h=300&fit=crop&crop=center',
             // 🐥🐥🐥🐥🐥 원본 데이터 보존
             원본데이터: {
                 제목: 원본상품.제목,
@@ -189,16 +347,16 @@ const 팝업창 = ({
         return 변환된상품;
     };
     
-    // 🐥🐥🐥🐥🐥 선택된 상품들을 상품관리 페이지에 추가하는 함수
-    const 선택된상품추가 = () => {
-        set상품추가로딩(true);
+    // 🐥🐥🐥🐥🐥 선택된 상품들을 상품관리 페이지에 추가하는 함수 (기존 함수를 순서별 처리로 변경)
+    const 선택된상품추가 = async () => {
+        set이미지추출로딩(true);
         try {
-            선택된상품처리();
+            await 순서별상품처리();
         } catch (error) {
             console.error('상품 처리 오류:', error);
             alert('상품 처리 중 오류가 발생했습니다.');
         } finally {
-            set상품추가로딩(false);
+            set이미지추출로딩(false);
         }
     };
     
@@ -264,7 +422,12 @@ const 팝업창 = ({
         set검색실행이_완료되었는지(false);
         set전체선택(false);
         set선택된상품들(new Set());
-        set상품추가로딩(false);
+        set이미지추출로딩(false);
+        set진행상황({
+            현재: 0,
+            전체: 0,
+            메시지: ''
+        });
     };
 
     // 🐥🐥🐥🐥🐥 ESC 키로 팝업 닫기
@@ -309,9 +472,7 @@ const 팝업창 = ({
             // 🐥🐥🐥🐥 검색어를 URL로 변환 (페이지 번호 추가)
             const 검색URL = `https://www.cninsider.co.kr/mall/#/product?keywords=${encodeURIComponent(검색어)}&type=text&imageAddress=&searchDiff=1`;
             
-            const API_BASE_URL = process.env.NODE_ENV === 'production'
-                ? 'https://my-commerce-app.onrender.com'
-                : 'http://localhost:8001';
+            const API_BASE_URL = 'http://localhost:8001';
             
             // 🐥🐥🐥🐥🐥 안전한 JSON 직렬화를 위한 데이터 준비
             const requestData = {
@@ -331,21 +492,15 @@ const 팝업창 = ({
             const data = await response.json();
             
             if (data.success) {
-                // 🐥🐥🐥🐥🐥 검색 결과에서 이미지 URL 제거
-                const 이미지제거된상품들 = data.products.map(상품 => ({
-                    ...상품,
-                    이미지URL: null // 이미지 URL을 null로 설정하여 이미지 로딩 방지
-                }));
-                
                 if (페이지 === 1) {
-                    set상품목록(이미지제거된상품들);
+                    set상품목록(data.products);
                     set검색실행이_완료되었는지(true);
                 } else {
                     // 🐥🐥🐥🐥🐥 중복 제거 로직 추가
                     set상품목록(prev => {
-                        const 기존상품들 = prev.map(item => item.제목);
-                        const 새로운상품들 = 이미지제거된상품들.filter(item => 
-                            !기존상품들.includes(item.제목)
+                        const 기존상품들 = prev.map(item => item.제목 + item.이미지URL);
+                        const 새로운상품들 = data.products.filter(item => 
+                            !기존상품들.includes(item.제목 + item.이미지URL)
                         );
                         return [...prev, ...새로운상품들];
                     });
@@ -573,22 +728,15 @@ const 팝업창 = ({
                                      
                                      {/* 🐥🐥🐥🐥🐥 상품 이미지 */}
                                      <div className="relative h-48 bg-gray-100">
-                                         {상품.이미지URL ? (
-                                             <img 
-                                                 src={상품.이미지URL} 
-                                                 alt={상품.제목} 
-                                                 className="w-full h-full object-cover"
-                                                 onError={(e) => {
-                                                     e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDMTE2LjU2OSA3MCAxMzAgODMuNDMxIDMwIDEwMEMxMzAgMTE2LjU2OSAxMTYuNTY5IDEzMCAxMDAgMTMwQzgzLjQzMSAxMzAgNzAgMTE2LjU2OSA3MCAxMEM3MCA4My40MzEgODMuNDMxIDcwIDEwMCA3MFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
-                                                 }}
-                                             />
-                                         ) : (
-                                             <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                                 <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                 </svg>
-                                             </div>
-                                         )}
+                                         <img 
+                                             src={상품.이미지URL} 
+                                             alt={상품.제목} 
+                                             className="w-full h-full object-cover"
+                                             onError={(e) => {
+                                                 e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDMTE2LjU2OSA3MCAxMzAgODMuNDMxIDMwIDEwMEMxMzAgMTE2LjU2OSAxMTYuNTY5IDEzMCAxMDAgMTMwQzgzLjQzMSAxMzAgNzAgMTE2LjU2OSA3MCAxMEM3MCA4My40MzEgODMuNDMxIDcwIDEwMCA3MFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                             }}
+                                         />
+
                                      </div>
                                      
                                      {/* 🐥🐥🐥🐥🐥 상품 정보 */}
@@ -655,7 +803,31 @@ const 팝업창 = ({
 
                 {/* 🐥🐥🐥🐥🐥 하단 액션 버튼 영역 - 선택된 상품 추가 기능 */}
                 {검색기능 && (
-                    <div className="flex items-center justify-end p-6 border-t border-gray-100 bg-gray-50">
+                    <div className={`flex items-center p-6 border-t border-gray-100 bg-gray-50 ${이미지추출로딩 && 진행상황.전체 > 0 ? 'justify-between gap-9' : 'justify-end'}`}>
+                        {/* 🐥🐥🐥🐥🐥 진행 상황 표시 - 왼쪽에 배치 */}
+                        {이미지추출로딩 && 진행상황.전체 > 0 && (
+                            <div className="flex-1 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg min-w-0">
+                                <div className="flex items-center justify-between mb-1 min-w-0">
+                                    <span className="text-sm font-medium text-gray-600 truncate flex-1 min-w-0">
+                                        {진행상황.메시지}
+                                    </span>
+                                    <span className="text-sm text-gray-500 ml-2 flex-shrink-0">
+                                        {진행상황.현재}/{진행상황.전체}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                        className="h-2 rounded-full transition-all duration-300"
+                                        style={{ 
+                                            width: `${(진행상황.현재 / 진행상황.전체) * 100}%`,
+                                            backgroundColor: '#5E92C6'
+                                        }}
+                                    ></div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* 🐥🐥🐥🐥🐥 버튼들 - 오른쪽에 배치 */}
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => {
@@ -668,16 +840,16 @@ const 팝업창 = ({
                             </button>
                             <button 
                                 onClick={선택된상품추가}
-                                disabled={선택된상품들.size === 0 || 상품추가로딩}
+                                disabled={선택된상품들.size === 0 || 이미지추출로딩}
                                 className="px-6 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" 
                             >
-                                {상품추가로딩 ? (
+                                {이미지추출로딩 ? (
                                     <>
                                         <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        추가 중...
+                                        가져오는 중...
                                     </>
                                 ) : (
                                     <>

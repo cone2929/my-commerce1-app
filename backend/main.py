@@ -1,18 +1,23 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from fastapi.responses import Response
 import asyncio
 import urllib.parse
 import time
+import json
 
 from supabase import create_client
 from dotenv import load_dotenv
 import os
 load_dotenv()
 
+# Supabase 인증용 (인증만 유지)
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 supabase = create_client(supabase_url, supabase_key)
+
+# SQLite 데이터베이스 관리
+from database import db
 
 # 🐥🐥🐥🐥🐥 Playwright 관련 import
 from playwright.async_api import async_playwright
@@ -122,11 +127,150 @@ app.add_middleware(
 @app.get("/")
 @app.head("/")
 def root():
-    return {"message": "Hello, FastAPI!"}
+    return {"message": "Hello, FastAPI!", "database": "SQLite", "auth": "Supabase"}
 
 @app.get("/health")
 def health():
-    return {"status": "OK"}
+    return {"status": "OK", "database": "SQLite", "auth": "Supabase"}
+
+# ===== 인증 미들웨어 =====
+async def get_current_user(authorization: str = Depends(lambda x: x.headers.get("Authorization"))):
+    """Supabase 토큰으로 사용자 인증"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="인증 토큰이 필요합니다")
+    
+    token = authorization.split(" ")[1]
+    try:
+        # Supabase 토큰 검증
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다")
+        
+        # SQLite에 사용자 정보 저장/업데이트
+        db.create_user(user.user.id, user.user.email)
+        
+        return user.user
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"인증 실패: {str(e)}")
+
+# ===== 상품 관리 API =====
+class 상품생성요청(BaseModel):
+    title: str
+    price: str = ""
+    korean_price: str = ""
+    sales_info: str = ""
+    label: str = ""
+    category: str = ""
+    thumbnail_images: list = []
+    detail_images: list = []
+
+@app.post("/api/products")
+async def 상품생성(요청: 상품생성요청, 사용자 = Depends(get_current_user)):
+    """상품 생성"""
+    try:
+        product_data = {
+            "title": 요청.title,
+            "price": 요청.price,
+            "korean_price": 요청.korean_price,
+            "sales_info": 요청.sales_info,
+            "label": 요청.label,
+            "category": 요청.category,
+            "thumbnail_images": 요청.thumbnail_images,
+            "detail_images": 요청.detail_images
+        }
+        
+        product_id = db.create_product(사용자.id, product_data)
+        if product_id:
+            return {"success": True, "product_id": product_id}
+        else:
+            raise HTTPException(status_code=500, detail="상품 생성 실패")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/products")
+async def 상품목록조회(사용자 = Depends(get_current_user)):
+    """사용자의 상품 목록 조회"""
+    try:
+        products = db.get_products(사용자.id)
+        return {"success": True, "products": products}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/products/{product_id}")
+async def 상품수정(product_id: int, 요청: 상품생성요청, 사용자 = Depends(get_current_user)):
+    """상품 수정"""
+    try:
+        product_data = {
+            "title": 요청.title,
+            "price": 요청.price,
+            "korean_price": 요청.korean_price,
+            "sales_info": 요청.sales_info,
+            "label": 요청.label,
+            "category": 요청.category,
+            "thumbnail_images": 요청.thumbnail_images,
+            "detail_images": 요청.detail_images
+        }
+        
+        success = db.update_product(product_id, 사용자.id, product_data)
+        if success:
+            return {"success": True}
+        else:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/products/{product_id}")
+async def 상품삭제(product_id: int, 사용자 = Depends(get_current_user)):
+    """상품 삭제"""
+    try:
+        success = db.delete_product(product_id, 사용자.id)
+        if success:
+            return {"success": True}
+        else:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== 주문 관리 API =====
+class 주문생성요청(BaseModel):
+    order_number: str
+    customer_name: str
+    customer_phone: str = ""
+    customer_email: str = ""
+    shipping_address: str = ""
+    total_amount: float
+    items: list = []
+
+@app.post("/api/orders")
+async def 주문생성(요청: 주문생성요청, 사용자 = Depends(get_current_user)):
+    """주문 생성"""
+    try:
+        order_data = {
+            "order_number": 요청.order_number,
+            "customer_name": 요청.customer_name,
+            "customer_phone": 요청.customer_phone,
+            "customer_email": 요청.customer_email,
+            "shipping_address": 요청.shipping_address,
+            "total_amount": 요청.total_amount,
+            "items": 요청.items
+        }
+        
+        order_id = db.create_order(사용자.id, order_data)
+        if order_id:
+            return {"success": True, "order_id": order_id}
+        else:
+            raise HTTPException(status_code=500, detail="주문 생성 실패")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/orders")
+async def 주문목록조회(사용자 = Depends(get_current_user)):
+    """사용자의 주문 목록 조회"""
+    try:
+        orders = db.get_orders(사용자.id)
+        return {"success": True, "orders": orders}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 import requests
 
