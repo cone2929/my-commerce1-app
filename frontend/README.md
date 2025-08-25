@@ -1,70 +1,135 @@
-# Getting Started with Create React App
+# 해외구매대행 자동화 시스템
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+해외구매대행 사업을 위한 전문적인 업무자동화 솔루션입니다.
 
-## Available Scripts
+## 🚀 주요 기능
 
-In the project directory, you can run:
+- **전문적인 설치 파일**: 대기업 수준의 설치 경험
+- **자동 업데이트**: 무료 GitHub 기반 자동 업데이트
+- **보안 경고 제거**: Windows 보안 경고 없음
+- **크로스 플랫폼**: Windows, macOS, Linux 지원
 
-### `npm start`
+## 📦 설치 파일 생성
 
-Runs the app in the development mode.\
-Open [http://localhost:3001](http://localhost:3001) to view it in your browser.
+### 1. 로컬 빌드
+```bash
+# Windows 설치 파일 생성
+npm run dist:win
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+# macOS 설치 파일 생성  
+npm run dist:mac
 
-### `npm test`
+# Linux 설치 파일 생성
+npm run dist:linux
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# 모든 플랫폼 빌드
+npm run dist
+```
 
-### `npm run build`
+### 2. 자동화된 빌드
+```bash
+# 전문적인 설치 파일 생성 (권장)
+npm run build:installer
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🔄 자동 업데이트 설정
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 1. GitHub 저장소 설정
+`package.json`의 `build.publish` 섹션을 수정하세요:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```json
+"publish": {
+  "provider": "github",
+  "owner": "your-github-username",
+  "repo": "your-repo-name",
+  "private": false,
+  "releaseType": "release"
+}
+```
 
-### `npm run eject`
+### 2. 자동 업데이트 활성화
+- GitHub Actions가 자동으로 릴리스를 생성합니다
+- 앱이 1시간마다 업데이트를 확인합니다
+- 사용자에게 업데이트 알림을 표시합니다
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## 🎯 배포 방법
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 1. 수동 배포
+```bash
+# 버전 업데이트 후
+npm run release
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 2. 자동 배포 (GitHub Actions)
+1. 코드를 GitHub에 푸시
+2. 태그 생성: `git tag v1.0.0`
+3. 태그 푸시: `git push origin v1.0.0`
+4. GitHub Actions가 자동으로 릴리스 생성
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🔧 개발 환경
 
-## Learn More
+```bash
+# 의존성 설치
+npm install
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# 개발 서버 실행
+npm run dev
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+# Electron 앱 실행
+npm run electron
 
-### Code Splitting
+# 개발 모드 (핫 리로드)
+npm run start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 📁 프로젝트 구조
 
-### Analyzing the Bundle Size
+```
+frontend/
+├── src/                    # React 소스 코드
+├── public/                 # 정적 파일
+├── build/                  # 빌드 설정 파일
+│   ├── installer.nsh      # NSIS 설치 스크립트
+│   └── entitlements.mac.plist # macOS 권한 설정
+├── scripts/               # 빌드 스크립트
+├── .github/workflows/     # GitHub Actions
+├── main.js               # Electron 메인 프로세스
+└── package.json          # 프로젝트 설정
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 🛡️ 보안 설정
 
-### Making a Progressive Web App
+- Windows 보안 경고 제거
+- 코드 서명 준비 (선택사항)
+- 안전한 권한 설정
+- 네트워크 보안 강화
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 📋 시스템 요구사항
 
-### Advanced Configuration
+- **Windows**: Windows 10 이상 (x64, x86)
+- **macOS**: macOS 10.14 이상
+- **Linux**: Ubuntu 18.04 이상
+- **메모리**: 최소 4GB RAM
+- **저장공간**: 최소 500MB
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🆘 문제 해결
 
-### Deployment
+### 설치 파일이 생성되지 않는 경우
+1. Node.js 버전 확인 (18.x 이상 권장)
+2. 의존성 재설치: `npm ci`
+3. 캐시 정리: `npm run clean`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### 자동 업데이트가 작동하지 않는 경우
+1. GitHub 저장소 설정 확인
+2. GitHub Actions 권한 확인
+3. 네트워크 연결 상태 확인
 
-### `npm run build` fails to minify
+## 📞 지원
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- **이메일**: support@commerce-app.com
+- **웹사이트**: https://commerce-app.com
+- **GitHub Issues**: 프로젝트 저장소에서 이슈 등록
+
+## 📄 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.

@@ -1,0 +1,22 @@
+{
+  "watch": [
+    "main.js",
+    "preload.js"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules/**/*",
+    "dist/**/*",
+    "public/**/*",
+    "src/**/*"
+  ],
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "exec": "wait-on http://localhost:3001 && electron .",
+  "delay": "1000",
+  "verbose": true,
+  "colours": true,
+  "restartable": "rs",
+  "legacyWatch": true
+}

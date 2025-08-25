@@ -30,7 +30,7 @@ export const 토큰새로고침 = async () => {
     try {
         const { data, error } = await supabase.auth.refreshSession();
         if (error) throw error;
-        console.log('토큰 새로고침 성공:', data);
+    
         return data;
     } catch (error) {
         console.error('토큰 새로고침 실패:', error);
@@ -56,27 +56,21 @@ export const 로그아웃 = async () => {
         // ★★★★★ 1단계: 현재 세션 상태 확인
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-        console.log('🔍 세션 확인:', {
-            세션있음: !!sessionData?.session,
-            사용자있음: !!sessionData?.session?.user,
-            오류: sessionError
-        });
-
         // ★★★★★ 2단계: 세션이 있고 유효한 경우에만 서버 로그아웃 시도
         if (sessionData?.session && !sessionError) {
             try {
                 const { error: signOutError } = await supabase.auth.signOut();
 
                 if (signOutError) {
-                    console.log('ℹ️ 서버 로그아웃 실패 (무시):', signOutError.message);
+            
                 } else {
-                    console.log('✅ 서버 로그아웃 성공');
+            
                 }
             } catch (signOutErr) {
-                console.log('ℹ️ 서버 로그아웃 오류 (무시):', signOutErr.message);
+        
             }
         } else {
-            console.log('ℹ️ 세션이 없음 - 서버 로그아웃 생략');
+    
         }
 
         // ★★★★★ 3단계: 강제 로컬 세션 제거 (서버 결과와 무관하게 실행)
@@ -91,9 +85,9 @@ export const 로그아웃 = async () => {
             }
             keysToRemove.forEach(key => localStorage.removeItem(key));
 
-            console.log('🧹 로컬 세션 정리 완료:', keysToRemove.length, '개 항목 제거');
+    
         } catch (localError) {
-            console.log('ℹ️ 로컬 정리 오류 (무시):', localError);
+
         }
 
         // ★★★★★ 4단계: React 상태 강제 업데이트 (핵심 추가!)
@@ -105,7 +99,7 @@ export const 로그아웃 = async () => {
                 }
             });
         } catch (stateError) {
-            console.log('ℹ️ 상태 업데이트 오류 (무시):', stateError);
+
         }
 
         // ★★★★★ 5단계: 강제 페이지 새로고침 (최후의 보장)
@@ -113,11 +107,11 @@ export const 로그아웃 = async () => {
             window.location.reload();
         }, 100);
 
-        console.log('✅ 로그아웃 완료 (모든 단계 수행됨)');
+
 
     } catch (overallError) {
         // ★★★★★ 모든 오류 무시하고 강제 정리
-        console.log('ℹ️ 전체 오류 발생 - 강제 정리 실행:', overallError.message);
+
 
         try {
             // 강제로 모든 Supabase 로컬 데이터 제거
@@ -132,7 +126,7 @@ export const 로그아웃 = async () => {
                 window.location.reload();
             }, 100);
         } catch (e) {
-            console.log('강제 정리도 실패 - 새로고침');
+    
             window.location.reload();
         }
     }

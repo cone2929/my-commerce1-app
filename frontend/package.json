@@ -1,7 +1,7 @@
 {
   "name": "beautiful-commerce",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.53.0",
@@ -12,19 +12,40 @@
     "@testing-library/user-event": "^13.5.0",
     "ag-grid-community": "^34.1.0",
     "ag-grid-react": "^34.1.0",
-    "axios": "^1.11.0",
+    "better-sqlite3": "^12.2.0",
+    "electron-updater": "^6.6.2",
     "lucide-react": "^0.535.0",
+    "playwright": "^1.55.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.7.1",
+    "sqlite3": "^5.1.7",
     "styled-components": "^6.1.19",
     "web-vitals": "^2.1.4"
   },
+  "main": "main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "electron": "npx electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3001 && electron .\"",
+    "electron-dev-watch": "concurrently \"npm run dev\" \"wait-on http://localhost:3001 && electron . --enable-logging\"",
+    "electron-pack": "npm run build && electron-builder",
+    "dist": "electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "publish": "npm run build && electron-builder --publish=always",
+    "build:installer": "node scripts/build-installer.js",
+    "release": "npm run build:installer && git tag v$(node -p \"require('./package.json').version\") && git push origin v$(node -p \"require('./package.json').version\")",
+    "dev:full": "concurrently \"npm run dev\" \"npm run electron:watch\"",
+    "electron:watch": "nodemon --watch main.js --watch preload.js --ext js --exec \"wait-on http://localhost:3001 && electron .\"",
+    "dev:hot": "concurrently \"npm run dev\" \"npm run electron:hot\"",
+    "electron:hot": "wait-on http://localhost:3001 && electron . --enable-logging",
+    "start": "npm run dev:full",
+    "start:hot": "npm run dev:hot"
   },
   "eslintConfig": {
     "extends": [
@@ -48,13 +69,124 @@
     "@tailwindcss/forms": "^0.5.10",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.0",
     "daisyui": "^5.0.50",
+    "electron": "^37.3.1",
+    "electron-builder": "^26.0.12",
+    "electron-reloader": "^1.2.3",
     "jsdom": "^26.1.0",
+    "nodemon": "^3.1.10",
     "postcss": "^8.5.6",
     "sass": "^1.89.2",
     "tailwindcss": "^3.4.17",
     "vite": "^6.3.5",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.commerce.app",
+    "productName": "해외구매대행 자동화 시스템",
+    "copyright": "Copyright © 2024",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "node_modules/**/*",
+      "!node_modules/electron/**/*",
+      "!node_modules/electron-builder/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "public/",
+        "to": "public/"
+      }
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "your-actual-github-username",
+      "repo": "my-commerce1-app",
+      "private": false,
+      "releaseType": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/logo192.png",
+      "requestedExecutionLevel": "asInvoker",
+      "signAndEditExecutable": false,
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "publisherName": "해외구매대행 자동화 시스템",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "해외구매대행 자동화 시스템",
+      "installerIcon": "public/logo192.png",
+      "uninstallerIcon": "public/logo192.png",
+      "installerHeaderIcon": "public/logo192.png",
+      "deleteAppDataOnUninstall": true,
+      "include": "build/installer.nsh",
+      "license": "LICENSE",
+      "language": "1042"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/logo192.png",
+      "category": "public.app-category.business",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/logo192.png",
+      "category": "Office"
+    },
+    "dmg": {
+      "title": "해외구매대행 자동화 시스템",
+      "icon": "public/logo192.png",
+      "background": "public/dmg-background.png",
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "appImage": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    }
   }
 }

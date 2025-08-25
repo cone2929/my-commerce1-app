@@ -8,7 +8,7 @@ const 팝업창 = ({
     자식, 
     크기 = "medium", // small, medium, large, full
     닫기버튼표시 = true,
-    배경클릭닫기 = true,
+    배경클릭닫기 = false,
     검색기능 = false, // 🐥🐥🐥🐥🐥 검색 기능 활성화 옵션 추가
     선택된상품추가콜백 = null // 🐥🐥🐥🐥🐥 선택된 상품을 부모로 전달하는 콜백 함수 추가
 }) => {
@@ -76,7 +76,7 @@ const 팝업창 = ({
                     상태: '판매중',
                     등록일: new Date().toLocaleDateString('ko-KR'),
                     설명: 원본상품.제목 || '상품 설명',
-                    이미지: 원본상품.이미지URL || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300&h=300&fit=crop&crop=center',
+                    이미지: 원본상품.이미지URL || '',
                     // 🐥🐥🐥🐥🐥 원본 데이터 보존
                     원본데이터: {
                         제목: 원본상품.제목,
@@ -157,7 +157,7 @@ const 팝업창 = ({
                 }
                 
             } catch (error) {
-                console.error(`상품 "${현재상품.제목}" 처리 중 오류:`, error);
+        
                 // 🐥🐥🐥🐥🐥 오류가 발생해도 기본 정보로 상품 추가
                 const 기본상품 = 상품정보변환(현재상품);
                 처리된상품들.push(기본상품);
@@ -192,20 +192,18 @@ const 팝업창 = ({
         }
         
         try {
-            const API_BASE_URL = 'http://localhost:8001';
             
-            const response = await fetch(`${API_BASE_URL}/api/extract-product-images`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            // 🐥🐥🐥🐥🐥 Electron API 사용
+            let data;
+            if (window.electronAPI) {
+                data = await window.electronAPI.extractProductImages({
                     상품명목록: [상품.제목], // 🐥🐥🐥🐥🐥 단일 상품만 전송
-                    사용자ID: 사용자ID || "anonymous"
-                })
-            });
-            
-            const data = await response.json();
+                    사용자ID: 사용자ID || "anonymous",
+                    검색URL: `https://www.cninsider.co.kr/mall/#/product?keywords=${encodeURIComponent(검색어)}&type=text&imageAddress=&searchDiff=1`
+                });
+            } else {
+                throw new Error('Electron API가 사용할 수 없습니다. Electron 앱에서 실행해주세요.');
+            }
             
 
             
@@ -272,7 +270,7 @@ const 팝업창 = ({
             return 기본상품;
             
         } catch (error) {
-            console.error('이미지 추출 오류:', error);
+    
             return 상품정보변환(상품);
         }
     };
@@ -332,7 +330,7 @@ const 팝업창 = ({
             상태: '판매중',
             등록일: new Date().toLocaleDateString('ko-KR'),
             설명: 원본상품.제목 || '상품 설명',
-            이미지: 원본상품.이미지URL || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300&h=300&fit=crop&crop=center',
+            이미지: 원본상품.이미지URL || '',
             // 🐥🐥🐥🐥🐥 원본 데이터 보존
             원본데이터: {
                 제목: 원본상품.제목,
@@ -353,7 +351,7 @@ const 팝업창 = ({
         try {
             await 순서별상품처리();
         } catch (error) {
-            console.error('상품 처리 오류:', error);
+    
             alert('상품 처리 중 오류가 발생했습니다.');
         } finally {
             set이미지추출로딩(false);
@@ -472,8 +470,6 @@ const 팝업창 = ({
             // 🐥🐥🐥🐥 검색어를 URL로 변환 (페이지 번호 추가)
             const 검색URL = `https://www.cninsider.co.kr/mall/#/product?keywords=${encodeURIComponent(검색어)}&type=text&imageAddress=&searchDiff=1`;
             
-            const API_BASE_URL = 'http://localhost:8001';
-            
             // 🐥🐥🐥🐥🐥 안전한 JSON 직렬화를 위한 데이터 준비
             const requestData = {
                 url: 검색URL,
@@ -481,15 +477,13 @@ const 팝업창 = ({
                 user_id: (사용자ID && typeof 사용자ID === 'string') ? 사용자ID : "anonymous"
             };
             
-            const response = await fetch(`${API_BASE_URL}/api/parse-products`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            const data = await response.json();
+            // 🐥🐥🐥🐥🐥 Electron API 사용
+            let data;
+            if (window.electronAPI) {
+                data = await window.electronAPI.parseProducts(requestData);
+            } else {
+                throw new Error('Electron API가 사용할 수 없습니다. Electron 앱에서 실행해주세요.');
+            }
             
             if (data.success) {
                 if (페이지 === 1) {
@@ -517,7 +511,7 @@ const 팝업창 = ({
         } catch (error) {
             set에러('검색 중 오류가 발생했습니다.');
             set검색실행이_완료되었는지(true);
-            console.error('검색 오류:', error);
+    
         } finally {
             set로딩중(false);
             set더보기로딩(false);
@@ -628,6 +622,7 @@ const 팝업창 = ({
                                                     placeholder="검색어를 입력하세요"
                                                     className="w-full bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 resize-none text-base leading-6 focus:outline-none focus:ring-0"
                                                     style={{ minHeight: '1.5rem' }}
+                                                    spellCheck="false"
                                                 />
                                             </div>
                                         </div>
@@ -728,15 +723,16 @@ const 팝업창 = ({
                                      
                                      {/* 🐥🐥🐥🐥🐥 상품 이미지 */}
                                      <div className="relative h-48 bg-gray-100">
-                                         <img 
-                                             src={상품.이미지URL} 
-                                             alt={상품.제목} 
-                                             className="w-full h-full object-cover"
-                                             onError={(e) => {
-                                                 e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDMTE2LjU2OSA3MCAxMzAgODMuNDMxIDMwIDEwMEMxMzAgMTE2LjU2OSAxMTYuNTY5IDEzMCAxMDAgMTMwQzgzLjQzMSAxMzAgNzAgMTE2LjU2OSA3MCAxMEM3MCA4My40MzEgODMuNDMxIDcwIDEwMCA3MFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
-                                             }}
-                                         />
-
+                                         {상품.이미지URL && !상품.이미지URL.startsWith('data:') ? (
+                                             <img 
+                                                 src={상품.이미지URL} 
+                                                 alt={상품.제목} 
+                                                 className="w-full h-full object-cover"
+                                                 onError={(e) => {
+                                                     e.target.style.display = 'none';
+                                                 }}
+                                             />
+                                         ) : null}
                                      </div>
                                      
                                      {/* 🐥🐥🐥🐥🐥 상품 정보 */}

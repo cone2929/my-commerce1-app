@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 // 🐥🐥🐥🐥🐥 팝업창 import 추가
 import 팝업창 from '../components/팝업창';
+import { logger } from '../utils/로깅';
+import { APP_CONSTANTS } from '../utils/상수';
 
 const 상품관리 = () => {
     // 🐥🐥🐥🐥🐥 팝업창 상태 관리 추가
@@ -61,7 +63,7 @@ const 상품관리 = () => {
         
         // 🐥🐥🐥🐥🐥 해당 인덱스의 이미지가 존재하는지 확인
         if (!이미지배열[이미지인덱스]) {
-            console.log(`🐥🐥🐥🐥🐥 이미지가 존재하지 않음: ${상품.상품명} - ${이미지타입} ${이미지인덱스 + 1}`);
+            logger.log(`🐥🐥🐥🐥🐥 이미지가 존재하지 않음: ${상품.상품명} - ${이미지타입} ${이미지인덱스 + 1}`);
             return;
         }
         
@@ -80,7 +82,7 @@ const 상품관리 = () => {
         // 🐥🐥🐥🐥🐥 자동 저장
         자동저장(상품);
         
-        console.log(`🐥🐥🐥🐥🐥 이미지 삭제됨: ${상품.상품명} - ${이미지타입} ${이미지인덱스 + 1}`);
+        logger.log(`🐥🐥🐥🐥🐥 이미지 삭제됨: ${상품.상품명} - ${이미지타입} ${이미지인덱스 + 1}`);
     };
 
     // 🐥🐥🐥🐥🐥 이미지 순서 변경 함수 - 항상 썸네일 첫 번째로 이동
@@ -127,7 +129,7 @@ const 상품관리 = () => {
         
         set상품목록(새상품목록);
         
-        console.log(`🐥🐥🐥🐥🐥 이미지 순서 변경됨: ${상품.상품명} - ${이미지타입} ${현재인덱스 + 1}번째 → 썸네일 1번째`);
+        logger.log(`🐥🐥🐥🐥🐥 이미지 순서 변경됨: ${상품.상품명} - ${이미지타입} ${현재인덱스 + 1}번째 → 썸네일 1번째`);
     };
 
     // 🐥🐥🐥🐥🐥 키보드 네비게이션 핸들러
@@ -295,6 +297,35 @@ const 상품관리 = () => {
 
             const [상품목록, set상품목록] = useState([]);
 
+    // 🐥🐥🐥🐥🐥 Electron API를 통한 상품 데이터 로드
+    useEffect(() => {
+        const 상품데이터로드 = async () => {
+            try {
+                if (window.electronAPI) {
+                    const 상품들 = await window.electronAPI.getProducts();
+                    // 🐥🐥🐥🐥🐥 데이터베이스 형식을 UI 형식으로 변환
+                    const 변환된상품들 = 상품들.map(상품 => ({
+                        id: 상품.id,
+                        상품명: 상품.name,
+                        카테고리: 상품.category || '기타',
+                        가격: 상품.price?.toString() || '',
+                        재고: '0',
+                        상태: '판매중',
+                        등록일: new Date(상품.created_at).toLocaleDateString('ko-KR'),
+                        설명: 상품.description || '',
+                        썸네일이미지들: 상품.image_url ? [상품.image_url] : [],
+                        상세이미지들: []
+                    }));
+                    set상품목록(변환된상품들);
+                }
+            } catch (error) {
+                logger.error('상품 데이터 로드 실패:', error);
+            }
+        };
+
+        상품데이터로드();
+    }, []);
+
     // 🐥🐥🐥🐥🐥 화면 크기에 따른 스케일 팩터 계산 및 적용
     useEffect(() => {
         const 스케일팩터계산 = () => {
@@ -382,9 +413,30 @@ const 상품관리 = () => {
         set저장중(prev => ({ ...prev, [상품.id]: true }));
 
         try {
-            // TODO: 실제 API 호출로 변경
-            await new Promise(resolve => setTimeout(resolve, 500));
-            console.log('자동 저장 완료:', 상품.상품명);
+            if (window.electronAPI) {
+                // 🐥🐥🐥🐥🐥 UI 형식을 데이터베이스 형식으로 변환
+                const 상품데이터 = {
+                    id: 상품.id,
+                    name: 상품.상품명,
+                    price: parseFloat(상품.가격) || 0,
+                    description: 상품.설명 || '',
+                    image_url: 상품.썸네일이미지들?.[0] || '',
+                    category: 상품.카테고리
+                };
+
+                if (상품.id && typeof 상품.id === 'number' && 상품.id > 0) {
+                    // 🐥🐥🐥🐥🐥 기존 상품 업데이트
+                    await window.electronAPI.updateProduct(상품데이터);
+                } else {
+                    // 🐥🐥🐥🐥🐥 새 상품 생성
+                    const 생성된상품 = await window.electronAPI.createProduct(상품데이터);
+                    // 🐥🐥🐥🐥🐥 생성된 ID로 상품 목록 업데이트
+                    set상품목록(prev => prev.map(p => 
+                        p.id === 상품.id ? { ...p, id: 생성된상품.id } : p
+                    ));
+                }
+          
+            }
         } catch (error) {
             console.error('자동 저장 실패:', error);
         } finally {
@@ -407,10 +459,19 @@ const 상품관리 = () => {
         set상품목록([새상품, ...상품목록]);
     };
 
-    const 상품삭제 = (id) => {
+    const 상품삭제 = async (id) => {
         if (상품목록.length > 1) {
-            const 새상품목록 = 상품목록.filter(상품 => 상품.id !== id);
-            set상품목록(새상품목록);
+            try {
+                if (window.electronAPI && typeof id === 'number' && id > 0) {
+                    // 🐥🐥🐥🐥🐥 데이터베이스에서 삭제
+                    await window.electronAPI.deleteProduct(id);
+                }
+                // 🐥🐥🐥🐥🐥 UI에서 제거
+                const 새상품목록 = 상품목록.filter(상품 => 상품.id !== id);
+                set상품목록(새상품목록);
+            } catch (error) {
+                console.error('상품 삭제 실패:', error);
+            }
         }
     };
 
@@ -514,11 +575,6 @@ const 상품관리 = () => {
                                                 ? 상품.썸네일이미지들 
                                                 : [];
                                             
-                                            console.log(`🐥🐥🐥🐥🐥 상품 "${상품.상품명}" 이미지 정보:`, {
-                                                썸네일이미지들: 상품.썸네일이미지들,
-                                                최종이미지들: 썸네일이미지들
-                                            });
-                                            
                                             // 🐥🐥🐥🐥🐥 5개의 이미지 슬롯 생성
                                             return Array.from({ length: 5 }, (_, index) => {
                                                 const 이미지URL = 썸네일이미지들[index];
@@ -545,9 +601,6 @@ const 상품관리 = () => {
                                                                 src={이미지URL} 
                                                                 alt={`${상품.상품명} 썸네일 ${index + 1}`}
                                                                 className="w-full h-full object-cover"
-                                                                onLoad={() => {
-                                                                    console.log(`🐥🐥🐥🐥🐥 이미지 로드 성공: ${이미지URL}`);
-                                                                }}
                                                             />
                                                         ) : (
                                                             // 🐥🐥🐥🐥🐥 빈 이미지 슬롯 - 상품카드 배경색과 동일
@@ -571,6 +624,7 @@ const 상품관리 = () => {
                                                     className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:border-transparent"
                                                     style={{ '--tw-ring-color': '#5E92C6' }}
                                                     placeholder="상품명을 입력하세요"
+                                                    spellCheck="false"
                                                 />
                                             </div>
                                             
@@ -590,6 +644,7 @@ const 상품관리 = () => {
                                                         className="w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:border-transparent"
                                                         style={{ '--tw-ring-color': '#5E92C6' }}
                                                         placeholder="가격을 입력하세요 (마진 30% 포함)"
+                                                        spellCheck="false"
                                                     />
                                                 </div>
                                             </div>
@@ -639,11 +694,7 @@ const 상품관리 = () => {
                                             const 상세이미지들 = 상품.상세이미지들 && 상품.상세이미지들.length > 0 
                                                 ? 상품.상세이미지들 
                                                 : [];
-                                            
-                                            console.log(`🐥🐥🐥🐥🐥 상품 "${상품.상품명}" 상세 이미지 정보:`, {
-                                                상세이미지들: 상품.상세이미지들,
-                                                최종상세이미지들: 상세이미지들
-                                            });
+
                                             
                                             // 🐥🐥🐥🐥🐥 5개의 이미지 슬롯 생성
                                             return Array.from({ length: 5 }, (_, index) => {
@@ -671,9 +722,6 @@ const 상품관리 = () => {
                                                                 src={이미지URL} 
                                                                 alt={`${상품.상품명} 상세이미지 ${index + 1}`}
                                                                 className="w-full h-full object-cover"
-                                                                onLoad={() => {
-                                                                    console.log(`🐥🐥🐥🐥🐥 상세 이미지 로드 성공: ${이미지URL}`);
-                                                                }}
                                                             />
                                                         ) : (
                                                             // 🐥🐥🐥🐥🐥 빈 이미지 슬롯 - 상품카드 배경색과 동일

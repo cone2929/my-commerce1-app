@@ -23,17 +23,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // ★★★★★ 인증 상태 리스너
 supabase.auth.onAuthStateChange((event, session) => {
-    console.log('🔄 인증 상태 변화:', event, session?.user?.email || '없음');
+
 
     if (event === 'SIGNED_IN') {
-        console.log('✅ 로그인 성공:', session?.user?.email);
+  
     }
 
     if (event === 'SIGNED_OUT') {
-        console.log('🚪 로그아웃');
+    
     }
 
     if (event === 'TOKEN_REFRESHED') {
-        console.log('🔄 토큰 새로고침');
+    
     }
 });

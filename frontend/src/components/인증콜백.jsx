@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/클라이언트';
+import { logger } from '../utils/로깅';
 
 const 인증콜백 = () => {
     const navigate = useNavigate();
@@ -8,11 +9,11 @@ const 인증콜백 = () => {
     useEffect(() => {
         const 콜백처리 = async () => {
             try {
-                console.log('🔍 현재 URL:', window.location.href);
+                logger.log('🔍 현재 URL:', window.location.href);
 
                 // ★★★★★ URL 해시에서 토큰 수동 추출
                 const hash = window.location.hash;
-                console.log('🔍 URL 해시:', hash);
+                logger.log('🔍 URL 해시:', hash);
 
                 if (hash && hash.includes('access_token')) {
                     // ★★★★★ URL 해시에서 토큰 파싱
@@ -21,7 +22,7 @@ const 인증콜백 = () => {
                     const refreshToken = hashParams.get('refresh_token');
                     const tokenType = hashParams.get('token_type');
 
-                    console.log('🔍 추출된 토큰들:', {
+                    logger.log('🔍 추출된 토큰들:', {
                         accessToken: accessToken ? accessToken.substring(0, 50) + '...' : null,
                         refreshToken: refreshToken,
                         tokenType: tokenType
@@ -30,22 +31,22 @@ const 인증콜백 = () => {
                     if (accessToken && refreshToken) {
                         try {
                             // ★★★★★ 수동으로 세션 설정
-                            console.log('🔄 수동 세션 설정 시도...');
+                            logger.log('🔄 수동 세션 설정 시도...');
                             const { data, error } = await supabase.auth.setSession({
                                 access_token: accessToken,
                                 refresh_token: refreshToken
                             });
 
-                            console.log('🔍 setSession 결과:', { data, error });
+                            logger.log('🔍 setSession 결과:', { data, error });
 
                             if (error) {
-                                console.error('❌ 세션 설정 실패:', error);
+                                logger.error('❌ 세션 설정 실패:', error);
                                 navigate('/로그인?error=session_set_failed');
                                 return;
                             }
 
                             if (data.session) {
-                                console.log('✅ 세션 설정 성공:', data.session.user.email);
+                                logger.log('✅ 세션 설정 성공:', data.session.user.email);
 
                                 // ★★★★★ URL 정리 (토큰 제거)
                                 window.history.replaceState({}, document.title, '/auth/callback');
@@ -54,30 +55,30 @@ const 인증콜백 = () => {
                                 return;
                             }
                         } catch (setSessionError) {
-                            console.error('❌ setSession 오류:', setSessionError);
+                            logger.error('❌ setSession 오류:', setSessionError);
                         }
                     }
                 }
 
                 // ★★★★★ 일반적인 세션 확인 (토큰이 URL에 없는 경우)
                 const { data, error } = await supabase.auth.getSession();
-                console.log('🔍 일반 세션 확인:', { data, error });
+                logger.log('🔍 일반 세션 확인:', { data, error });
 
                 if (error) {
-                    console.error('❌ 세션 오류:', error);
+                    logger.error('❌ 세션 오류:', error);
                     navigate('/로그인?error=session_failed');
                     return;
                 }
 
                 if (data.session) {
-                    console.log('✅ 기존 세션 발견:', data.session.user.email);
+                    logger.log('✅ 기존 세션 발견:', data.session.user.email);
                     navigate('/');
                 } else {
-                    console.log('❌ 세션 없음');
+                    logger.log('❌ 세션 없음');
                     navigate('/로그인?error=no_session');
                 }
             } catch (error) {
-                console.error('❌ 콜백 오류:', error);
+                logger.error('❌ 콜백 오류:', error);
                 navigate('/로그인?error=callback_failed');
             }
         };
