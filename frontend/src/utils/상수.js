@@ -1,9 +1,7 @@
 // 🐥🐥🐥🐥🐥 애플리케이션 상수
 export const APP_CONSTANTS = {
   // 🐥🐥🐥🐥🐥 API 관련
-  API_BASE_URL: process.env.NODE_ENV === 'production' 
-    ? 'https://my-commerce-app.onrender.com' 
-    : 'http://localhost:8000',
+  API_BASE_URL: 'http://localhost:3001', // 일렉트론 앱은 로컬에서만 실행
   
   // 🐥🐥🐥🐥🐥 페이지네이션
   ITEMS_PER_PAGE: 20,

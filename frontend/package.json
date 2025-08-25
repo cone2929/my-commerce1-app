@@ -107,7 +107,7 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "your-actual-github-username",
+      "owner": "cone2929",
       "repo": "my-commerce1-app",
       "private": false,
       "releaseType": "release"

@@ -8,7 +8,7 @@ if (!isDev) {
   // 업데이트 서버 URL 설정 (GitHub Releases 사용)
   autoUpdater.setFeedURL({
     provider: 'github',
-    owner: 'your-actual-github-username',
+    owner: 'cone2929',
     repo: 'my-commerce1-app',
     private: false,
     releaseType: 'release'
