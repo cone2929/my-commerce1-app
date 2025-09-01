@@ -1,0 +1,176 @@
+{
+  "name": "commerce-automation-system",
+  "version": "0.0.1",
+  "private": false,
+  "description": "해외구매대행 사업을 위한 전문적인 업무자동화 솔루션",
+  "author": "해외구매대행 자동화 시스템",
+  "homepage": "https://github.com/cone2929/my-commerce1-app",
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@supabase/supabase-js": "^2.53.0",
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "ag-grid-community": "^34.1.0",
+    "ag-grid-react": "^34.1.0",
+    "better-sqlite3": "^12.2.0",
+    "electron-updater": "^6.6.2",
+    "lucide-react": "^0.535.0",
+    "playwright": "^1.55.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.7.1",
+    "sqlite3": "^5.1.7",
+    "styled-components": "^6.1.19",
+    "web-vitals": "^2.1.4"
+  },
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "electron": "npx electron .",
+    "electron-dev": "npm run build && electron .",
+    "electron-pack": "npm run build && electron-builder",
+    "dist": "electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "publish": "npm run build && electron-builder --publish=always",
+    "build:installer": "node scripts/build-installer.js",
+    "release": "npm run build:installer && git tag v$(node -p \"require('./package.json').version\") && git push origin v$(node -p \"require('./package.json').version\")",
+    "start": "npm run electron-dev"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.21",
+    "daisyui": "^5.0.50",
+    "electron": "^37.3.1",
+    "electron-builder": "^26.0.12",
+    "electron-reloader": "^1.2.3",
+    "jsdom": "^26.1.0",
+    "postcss": "^8.5.6",
+    "sass": "^1.89.2",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.3.5",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.commerce.app",
+    "productName": "commerce-automation-system",
+    "copyright": "Copyright © 2024",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "public/",
+        "to": "public/"
+      },
+      {
+        "from": "src/",
+        "to": "src/"
+      }
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "cone2929",
+      "repo": "my-commerce1-app",
+      "private": false,
+      "releaseType": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "signAndEditExecutable": false,
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Commerce Automation System",
+      "deleteAppDataOnUninstall": true,
+      "license": "LICENSE",
+      "language": "1033",
+      "unicode": true,
+      "installerLanguages": [
+        "en-US"
+      ]
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.business",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Office"
+    },
+    "dmg": {
+      "title": "해외구매대행 자동화 시스템",
+      "background": "public/dmg-background.png",
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "appImage": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    }
+  }
+}
